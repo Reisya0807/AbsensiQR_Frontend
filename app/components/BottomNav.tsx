@@ -1,31 +1,51 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
 import { 
   Home, 
   FileText, 
   Briefcase, 
   User, 
   ScanLine, 
-  Info,    // Digunakan untuk About Us
-  Image    // Digunakan untuk Documentation
+  Info,    
+  Image    
 } from "lucide-react";
 
 export default function BottomNav() {
   const router = useRouter();
   const path = usePathname();
   const lime = "#A3FF12";
+  
+  const [isAdminRole, setIsAdminRole] = useState(false);
 
-  const Item = ({ Icon, route }: any) => {
-    // Tombol Home tetap aktif jika berada di path /home, /fund, atau /rundown
-    const isActive = route === "/home" 
-      ? (path === "/home" || path === "/fund" || path === "/rundown") 
-      : path === route;
+  useEffect(() => {
+    if (path.startsWith("/admin")) {
+      localStorage.setItem("userRole", "admin");
+      setIsAdminRole(true);
+    } else {
+      const savedRole = localStorage.getItem("userRole");
+      if (savedRole === "admin") {
+        setIsAdminRole(true);
+      } else {
+        setIsAdminRole(false);
+      }
+    }
+  }, [path]);
+
+  const homeRoute = isAdminRole ? "/admin" : "/home";
+
+  const Item = ({ Icon, route }: { Icon: any; route: string }) => {
+    const isActive = route === "/admin" 
+      ? path === "/admin" || path.startsWith("/admin/")
+      : route === "/home"
+        ? (path === "/home" || path === "/fund" || path === "/rundown")
+        : path === route;
 
     return (
       <button
         onClick={() => {
-          if (!isActive) router.push(route);
+          if (path !== route) router.push(route);
         }}
         className="flex-1 flex justify-center items-center cursor-pointer transition-all duration-200"
       >
@@ -54,17 +74,13 @@ export default function BottomNav() {
           boxShadow: "0 0 20px rgba(163,255,18,0.3)",
         }}
       >
-        {/* Navigasi Utama */}
-        <Item Icon={Home} route="/home" />
+        <Item Icon={Home} route={homeRoute} />
         <Item Icon={FileText} route="/certificate" />
-        
-        {/* Ikon Info untuk About Us */}
         <Item Icon={Info} route="/aboutus" />
 
-        {/* Tombol Scan (Center) */}
         <div
           onClick={() => router.push("/scan")}
-          className="w-14 h-14 mx-1 rounded-full flex items-center justify-center border cursor-pointer flex-shrink-0"
+          className="w-14 h-14 mx-1 rounded-full flex items-center justify-center border cursor-pointer flex-shrink-0 transition-all active:scale-90"
           style={{
             borderColor: lime,
             boxShadow: isScanActive
@@ -84,9 +100,7 @@ export default function BottomNav() {
           />
         </div>
 
-        {/* Ikon Image untuk Documentation */}
         <Item Icon={Image} route="/documentation" />
-        
         <Item Icon={Briefcase} route="/portfolio" />
         <Item Icon={User} route="/profile" />
       </div>

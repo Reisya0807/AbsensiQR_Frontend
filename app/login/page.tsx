@@ -23,15 +23,49 @@ export default function LoginPage() {
 
   const green = '#A3FF12';
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validasi dasar
+    if (!npm || !password) {
+      setAlert({ message: 'Harap isi semua field!', type: 'error' });
+      return;
+    }
+
     setLoading(true);
 
-    setAlert({ message: 'Login berhasil, mengalihkan...', type: 'success' });
+    try {
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ npm, password }),
+      });
 
-    setTimeout(() => {
-      router.push('/home');
-    }, 1000);
+      const data = await response.json();
+
+      if (data.success) {
+        setAlert({ 
+          message: `Login Berhasil! Halo, ${data.user.name}`, 
+          type: 'success' 
+        });
+
+        localStorage.setItem('userRole', data.user.role);
+
+        setTimeout(() => {
+          if (data.user.role === 'admin') {
+            router.push('/admin');
+          } else {
+            router.push('/home');
+          }
+        }, 1500);
+      } else {
+        setAlert({ message: data.message, type: 'error' });
+        setLoading(false);
+      }
+    } catch (error) {
+      setAlert({ message: 'Terjadi kesalahan koneksi!', type: 'error' });
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -43,13 +77,14 @@ export default function LoginPage() {
 
   const handleNpmChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    if (/^\d*$/.test(value)) setNpm(value);
+    setNpm(value);
   };
 
   return (
     <main
       className={`${spaceGrotesk.className} relative w-full h-screen flex items-center justify-center bg-[#080808] overflow-hidden`}
     >
+      {/* Background Texture */}
       <div
         className="absolute inset-0 z-0 pointer-events-none"
         style={{
@@ -60,6 +95,7 @@ export default function LoginPage() {
         }}
       />
 
+      {/* Alert Notification */}
       <AnimatePresence>
         {alert && (
           <motion.div
@@ -88,6 +124,7 @@ export default function LoginPage() {
         )}
       </AnimatePresence>
 
+      {/* Login Card */}
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
@@ -108,6 +145,7 @@ export default function LoginPage() {
           <div>
             <label className="text-white text-sm opacity-60">NPM</label>
             <input
+              autoComplete="off"
               value={npm}
               onChange={handleNpmChange}
               className="w-full mt-1 p-4 rounded-xl bg-black/40 border border-[#A3FF12]/30 text-white outline-none focus:border-[#A3FF12] transition-colors"
@@ -130,13 +168,15 @@ export default function LoginPage() {
             type="submit"
             whileTap={{ scale: 0.95 }}
             disabled={loading}
-            className="w-full py-4 rounded-full font-bold text-black uppercase tracking-widest"
+            className={`w-full py-4 rounded-full font-bold text-black uppercase tracking-widest transition-all ${
+              loading ? 'opacity-50 cursor-not-allowed' : 'opacity-100'
+            }`}
             style={{
               background: green,
-              boxShadow: '0 0 20px #A3FF12',
+              boxShadow: loading ? 'none' : '0 0 20px #A3FF12',
             }}
           >
-            {loading ? 'LOADING...' : 'LOGIN'}
+            {loading ? 'VERIFYING...' : 'LOGIN'}
           </motion.button>
         </form>
       </motion.div>

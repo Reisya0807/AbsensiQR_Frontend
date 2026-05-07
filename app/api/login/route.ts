@@ -10,7 +10,7 @@ export async function POST(request: Request) {
       npm: '12345678',
       password: 'pwsekre',
       role: 'admin',
-      name: 'Super Admin'
+      name: 'Sekretaris'
     };
 
     // Dummy User
@@ -18,7 +18,7 @@ export async function POST(request: Request) {
       npm: '87654321',
       password: 'pwuser',
       role: 'user',
-      name: 'Mahasiswa Testing'
+      name: 'Mahasiswa'
     };
 
     if (npm === adminDummy.npm && password === adminDummy.password) {

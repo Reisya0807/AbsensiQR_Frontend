@@ -5,13 +5,22 @@ import BottomNav from "../components/BottomNav";
 import { motion, AnimatePresence } from "framer-motion";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChevronDown } from "@fortawesome/free-solid-svg-icons";
+import { Space_Grotesk } from 'next/font/google';
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '700'],
+  variable: '--font-space',
+});
 
 export default function AboutPage() {
   const lime = "#A3FF12";
   const [open, setOpen] = useState(false);
 
+  
+
   return (
-    <main className="relative min-h-screen text-white pb-28 flex justify-center">
+    <main className={`${spaceGrotesk.className} relative min-h-screen text-white pb-28 flex justify-center uppercase tracking-wider`}>
 
       {/* BACKGROUND */}
       <div

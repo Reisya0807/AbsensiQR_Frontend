@@ -12,11 +12,10 @@ const spaceGrotesk = Space_Grotesk({
 
 export default function LoginPage() {
   const router = useRouter();
-
+  
   const [npm, setNpm] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-
   const [alert, setAlert] = useState<{
     message: string;
     type: 'success' | 'error';
@@ -24,46 +23,51 @@ export default function LoginPage() {
 
   const green = '#A3FF12';
 
-  const handleLogin = async () => {
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validasi dasar
     if (!npm || !password) {
-      setAlert({ message: 'NPM dan password wajib diisi', type: 'error' });
+      setAlert({ message: 'Harap isi semua field!', type: 'error' });
       return;
     }
 
-    try {
-      setLoading(true);
+    setLoading(true);
 
-      const res = await fetch('/api/login', {
+    try {
+      const response = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ npm, password }),
       });
 
-      const data = await res.json();
+      const data = await response.json();
 
-      if (res.ok && data.success) {
-        setAlert({ message: 'Login berhasil', type: 'success' });
+      if (data.success) {
+        setAlert({ 
+          message: `Login Berhasil! Halo, ${data.user.name}`, 
+          type: 'success' 
+        });
+
+        localStorage.setItem('userRole', data.user.role);
 
         setTimeout(() => {
-          router.push('/home');
-        }, 1000);
+          if (data.user.role === 'admin') {
+            router.push('/admin');
+          } else {
+            router.push('/home');
+          }
+        }, 1500);
       } else {
-        setAlert({
-          message: data.message || 'Login gagal',
-          type: 'error',
-        });
+        setAlert({ message: data.message, type: 'error' });
+        setLoading(false);
       }
-    } catch (err) {
-      setAlert({
-        message: 'Server error',
-        type: 'error',
-      });
-    } finally {
+    } catch (error) {
+      setAlert({ message: 'Terjadi kesalahan koneksi!', type: 'error' });
       setLoading(false);
     }
   };
 
-  // auto hide alert
   useEffect(() => {
     if (alert) {
       const timer = setTimeout(() => setAlert(null), 3000);
@@ -73,24 +77,25 @@ export default function LoginPage() {
 
   const handleNpmChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    if (/^\d*$/.test(value)) setNpm(value);
+    setNpm(value);
   };
 
   return (
     <main
       className={`${spaceGrotesk.className} relative w-full h-screen flex items-center justify-center bg-[#080808] overflow-hidden`}
     >
-      {/* BACKGROUND */}
+      {/* Background Texture */}
       <div
-        className="absolute inset-0"
+        className="absolute inset-0 z-0 pointer-events-none"
         style={{
           backgroundImage: "url('/img/bg-texture.jpeg')",
           backgroundSize: 'cover',
+          backgroundPosition: 'center',
           opacity: 0.3,
         }}
       />
 
-      {/* ALERT */}
+      {/* Alert Notification */}
       <AnimatePresence>
         {alert && (
           <motion.div
@@ -119,64 +124,59 @@ export default function LoginPage() {
         )}
       </AnimatePresence>
 
-      {/* CARD */}
+      {/* Login Card */}
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         className="relative z-10 w-[90%] max-w-md p-8 rounded-[40px] border border-[#A3FF12]/30 bg-black/60 backdrop-blur-xl"
       >
-        {/* BACK */}
         <button
           onClick={() => router.push('/')}
-          className="text-[#A3FF12] mb-4"
+          className="text-[#A3FF12] mb-4 text-xl active:scale-90 transition-transform"
         >
           ←
         </button>
 
-        {/* LOGO */}
         <div className="flex justify-center mb-6">
-          <img src="/img/logo.png" className="w-24" />
+          <img src="/img/logo.png" className="w-24" alt="Logo" />
         </div>
 
-        {/* FORM */}
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleLogin();
-          }}
-          className="space-y-5"
-        >
+        <form onSubmit={handleLogin} className="space-y-5">
           <div>
-            <label className="text-white text-sm">NPM</label>
+            <label className="text-white text-sm opacity-60">NPM</label>
             <input
+              autoComplete="off"
               value={npm}
               onChange={handleNpmChange}
-              className="w-full mt-1 p-4 rounded-xl bg-black/40 border border-[#A3FF12]/30 text-white"
+              className="w-full mt-1 p-4 rounded-xl bg-black/40 border border-[#A3FF12]/30 text-white outline-none focus:border-[#A3FF12] transition-colors"
               placeholder="Masukkan NPM"
             />
           </div>
 
           <div>
-            <label className="text-white text-sm">Password</label>
+            <label className="text-white text-sm opacity-60">Password</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full mt-1 p-4 rounded-xl bg-black/40 border border-[#A3FF12]/30 text-white"
+              className="w-full mt-1 p-4 rounded-xl bg-black/40 border border-[#A3FF12]/30 text-white outline-none focus:border-[#A3FF12] transition-colors"
               placeholder="********"
             />
           </div>
 
           <motion.button
+            type="submit"
             whileTap={{ scale: 0.95 }}
             disabled={loading}
-            className="w-full py-4 rounded-full font-bold text-black"
+            className={`w-full py-4 rounded-full font-bold text-black uppercase tracking-widest transition-all ${
+              loading ? 'opacity-50 cursor-not-allowed' : 'opacity-100'
+            }`}
             style={{
               background: green,
-              boxShadow: '0 0 20px #A3FF12',
+              boxShadow: loading ? 'none' : '0 0 20px #A3FF12',
             }}
           >
-            {loading ? 'LOADING...' : 'LOGIN'}
+            {loading ? 'VERIFYING...' : 'LOGIN'}
           </motion.button>
         </form>
       </motion.div>

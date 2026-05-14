@@ -1,19 +1,49 @@
 import { NextResponse } from 'next/server';
 
-export async function POST(req: Request) {
-  const body = await req.json();
-  const { npm, password } = body;
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const { npm, password } = body;
 
-  // contoh validasi dummy (nanti ganti database)
-  if (npm === '12345678' && password === 'admin') {
-    return NextResponse.json({
-      success: true,
-      message: 'Login berhasil',
-    });
+    // Dummy Admin
+    const adminDummy = {
+      npm: '12345678',
+      password: 'pwsekre',
+      role: 'admin',
+      name: 'Sekretaris'
+    };
+
+    // Dummy User
+    const userDummy = {
+      npm: '87654321',
+      password: 'pwuser',
+      role: 'user',
+      name: 'Mahasiswa'
+    };
+
+    if (npm === adminDummy.npm && password === adminDummy.password) {
+      return NextResponse.json({
+        success: true,
+        user: { name: adminDummy.name, role: adminDummy.role }
+      });
+    } 
+    
+    if (npm === userDummy.npm && password === userDummy.password) {
+      return NextResponse.json({
+        success: true,
+        user: { name: userDummy.name, role: userDummy.role }
+      });
+    }
+
+    return NextResponse.json(
+      { success: false, message: 'NPM atau Password salah!' },
+      { status: 401 }
+    );
+
+  } catch (error) {
+    return NextResponse.json(
+      { success: false, message: 'Server Error' },
+      { status: 500 }
+    );
   }
-
-  return NextResponse.json(
-    { success: false, message: 'NPM atau password salah' },
-    { status: 401 }
-  );
 }

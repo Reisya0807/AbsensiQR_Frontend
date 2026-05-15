@@ -12,10 +12,11 @@ const spaceGrotesk = Space_Grotesk({
 
 export default function LoginPage() {
   const router = useRouter();
-  
+
   const [npm, setNpm] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+
   const [alert, setAlert] = useState<{
     message: string;
     type: 'success' | 'error';
@@ -25,10 +26,12 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validasi dasar
+
     if (!npm || !password) {
-      setAlert({ message: 'Harap isi semua field!', type: 'error' });
+      setAlert({
+        message: 'Harap isi semua field!',
+        type: 'error',
+      });
       return;
     }
 
@@ -37,19 +40,28 @@ export default function LoginPage() {
     try {
       const response = await fetch('/api/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ npm, password }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          npm,
+          password,
+        }),
       });
 
       const data = await response.json();
 
       if (data.success) {
-        setAlert({ 
-          message: `Login Berhasil! Halo, ${data.user.name}`, 
-          type: 'success' 
-        });
+        // simpan cookie login
+        document.cookie = `token=${data.user.role}; path=/`;
 
+        // simpan role
         localStorage.setItem('userRole', data.user.role);
+
+        setAlert({
+          message: `Login Berhasil! Halo, ${data.user.name}`,
+          type: 'success',
+        });
 
         setTimeout(() => {
           if (data.user.role === 'admin') {
@@ -59,32 +71,44 @@ export default function LoginPage() {
           }
         }, 1500);
       } else {
-        setAlert({ message: data.message, type: 'error' });
+        setAlert({
+          message: data.message || 'Login gagal!',
+          type: 'error',
+        });
+
         setLoading(false);
       }
     } catch (error) {
-      setAlert({ message: 'Terjadi kesalahan koneksi!', type: 'error' });
+      setAlert({
+        message: 'Terjadi kesalahan koneksi!',
+        type: 'error',
+      });
+
       setLoading(false);
     }
   };
 
   useEffect(() => {
     if (alert) {
-      const timer = setTimeout(() => setAlert(null), 3000);
+      const timer = setTimeout(() => {
+        setAlert(null);
+      }, 3000);
+
       return () => clearTimeout(timer);
     }
   }, [alert]);
 
-  const handleNpmChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setNpm(value);
+  const handleNpmChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    setNpm(e.target.value);
   };
 
   return (
     <main
       className={`${spaceGrotesk.className} relative w-full h-screen flex items-center justify-center bg-[#080808] overflow-hidden`}
     >
-      {/* Background Texture */}
+      {/* Background */}
       <div
         className="absolute inset-0 z-0 pointer-events-none"
         style={{
@@ -95,7 +119,7 @@ export default function LoginPage() {
         }}
       />
 
-      {/* Alert Notification */}
+      {/* Alert */}
       <AnimatePresence>
         {alert && (
           <motion.div
@@ -105,8 +129,7 @@ export default function LoginPage() {
             className="absolute top-0 z-50"
           >
             <div
-              className={`px-6 py-4 rounded-2xl backdrop-blur-xl border text-white shadow-lg
-              ${
+              className={`px-6 py-4 rounded-2xl backdrop-blur-xl border text-white shadow-lg ${
                 alert.type === 'success'
                   ? 'border-[#A3FF12] bg-[#A3FF12]/10'
                   : 'border-red-400 bg-red-400/10'
@@ -124,12 +147,13 @@ export default function LoginPage() {
         )}
       </AnimatePresence>
 
-      {/* Login Card */}
+      {/* Card */}
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         className="relative z-10 w-[90%] max-w-md p-8 rounded-[40px] border border-[#A3FF12]/30 bg-black/60 backdrop-blur-xl"
       >
+        {/* Back */}
         <button
           onClick={() => router.push('/')}
           className="text-[#A3FF12] mb-4 text-xl active:scale-90 transition-transform"
@@ -137,13 +161,23 @@ export default function LoginPage() {
           ←
         </button>
 
+        {/* Logo */}
         <div className="flex justify-center mb-6">
-          <img src="/img/logo.png" className="w-24" alt="Logo" />
+          <img
+            src="/img/logo.png"
+            className="w-24"
+            alt="Logo"
+          />
         </div>
 
+        {/* Form */}
         <form onSubmit={handleLogin} className="space-y-5">
+          {/* NPM */}
           <div>
-            <label className="text-white text-sm opacity-60">NPM</label>
+            <label className="text-white text-sm opacity-60">
+              NPM
+            </label>
+
             <input
               autoComplete="off"
               value={npm}
@@ -153,8 +187,12 @@ export default function LoginPage() {
             />
           </div>
 
+          {/* Password */}
           <div>
-            <label className="text-white text-sm opacity-60">Password</label>
+            <label className="text-white text-sm opacity-60">
+              Password
+            </label>
+
             <input
               type="password"
               value={password}
@@ -164,16 +202,21 @@ export default function LoginPage() {
             />
           </div>
 
+          {/* Button */}
           <motion.button
             type="submit"
             whileTap={{ scale: 0.95 }}
             disabled={loading}
             className={`w-full py-4 rounded-full font-bold text-black uppercase tracking-widest transition-all ${
-              loading ? 'opacity-50 cursor-not-allowed' : 'opacity-100'
+              loading
+                ? 'opacity-50 cursor-not-allowed'
+                : 'opacity-100'
             }`}
             style={{
               background: green,
-              boxShadow: loading ? 'none' : '0 0 20px #A3FF12',
+              boxShadow: loading
+                ? 'none'
+                : '0 0 20px #A3FF12',
             }}
           >
             {loading ? 'VERIFYING...' : 'LOGIN'}

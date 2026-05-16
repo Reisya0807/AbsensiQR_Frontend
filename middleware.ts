@@ -22,7 +22,6 @@ export function middleware(request: NextRequest) {
 // Route yang diproteksi
 export const config = {
   matcher: [
-    '/',
     '/about/:path*',
     '/aboutus/:path*',
     '/admin/:path*',

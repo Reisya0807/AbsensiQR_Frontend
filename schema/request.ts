@@ -1,22 +1,21 @@
-import { UUID } from "crypto"
 // tiap request di endpoint tertentu
-interface ChangePassword{
+interface ChangePassword {
     oldPassword: string,
     newPassword: string,
     confirmPassword: string
 }
 interface Login {
-    username:string,
-    password:string
+    username: string,
+    password: string
 }
 interface ResetPassword {
-    userId:UUID
+    userId: string
 }
-interface ManualAttandance{
-    npm:string
+interface ManualAttandance {
+    npm: string
 }
-interface ScanAttandance{
+interface ScanAttandance {
     token: string
 }
 
-export type {ChangePassword, Login, ResetPassword, ManualAttandance, ScanAttandance}
+export type { ChangePassword, Login, ResetPassword, ManualAttandance, ScanAttandance }

@@ -1,22 +1,25 @@
-import { Url } from "url";
-import { ISODateString } from "./customType";
-import { UUID } from "crypto";
+import { ISODateString } from "./customType"
 
-interface PortfolioUpdate{
-    title?:string|null,
-    description?: string|null,
-    link?: Url | null
+interface PortfolioUpdate {
+    title?: string,
+    description?: string,
+    link?: string | null,
 }
 
 interface PortfolioCreate extends PortfolioUpdate {
-    title:string,
+    title: string,
     description: string,
-    link?: Url | null
-}
-interface PortfolioData extends PortfolioCreate{
-    pesertaId: UUID,
-    createdAt: ISODateString,
-    updatedAt: ISODateString
+    link?: string | null,
 }
 
-export type {PortfolioCreate, PortfolioUpdate, PortfolioData}
+interface PortfolioData {
+    id: string,
+    title: string,
+    description: string,
+    link: string | null,
+    pesertaId: string,
+    createdAt: ISODateString,
+    updatedAt: ISODateString,
+}
+
+export type { PortfolioCreate, PortfolioUpdate, PortfolioData }

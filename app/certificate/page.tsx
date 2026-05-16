@@ -2,6 +2,10 @@
 
 import BottomNav from '../components/BottomNav';
 import { Space_Grotesk } from 'next/font/google';
+import { useEffect, useState } from 'react';
+import { certificateAPI } from '@/utils/api/listAPI';
+import { CertificateData } from '@/schema/certificate';
+import { getErrorMessage } from '@/utils/api/safeRequest';
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
@@ -12,10 +16,35 @@ const spaceGrotesk = Space_Grotesk({
 export default function CertificatePage() {
   const lime = '#A3FF12';
 
+  const [items, setItems] = useState<CertificateData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const res = await certificateAPI.getMy();
+        if (cancelled) return;
+        setItems(res.data ?? []);
+      } catch (err) {
+        if (cancelled) return;
+        setError(getErrorMessage(err, 'Gagal memuat sertifikat'));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const formatDate = (iso: string) =>
+    new Date(iso).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+
   return (
     <main className={`${spaceGrotesk.className} relative min-h-screen text-white pb-28 flex flex-col items-center`}>
-      {' '}
-      {/* BG */}
       <div
         className="absolute inset-0"
         style={{
@@ -25,29 +54,58 @@ export default function CertificatePage() {
         }}
       />
       <div className="absolute inset-0 bg-black/60" />
-      {/* CONTENT */}
+
       <div className="relative z-10 w-full flex flex-col items-center pt-16">
-        {/* JUDUL*/}
         <h1 className="text-2xl font-black mb-6 tracking-wider uppercase" style={{ color: lime }}>
           CERTIFICATE
         </h1>
 
         <div className="w-full max-w-md px-4 space-y-4">
-          <div className="p-5 rounded-2xl border flex justify-between items-center backdrop-blur-md bg-black/40" style={{ borderColor: lime }}>
-            <div>
-              {/*NAMA*/}
-              <p style={{ color: lime }} className="font-black uppercase tracking-tight">
-                VIDYA SAMBHANDA
-              </p>
-              {/* TANGGAL*/}
-              <p className="text-xs text-white/60 font-bold tracking-tighter">APRIL 25, 2026</p>
+          {error && (
+            <div className="px-4 py-3 rounded-xl border border-red-400/40 text-red-300 text-xs">
+              {error}
             </div>
+          )}
 
-            {/* BUTTON*/}
-            <button className="px-4 py-2 rounded-full text-black font-black text-xs uppercase tracking-widest" style={{ backgroundColor: lime }}>
-              DOWNLOAD
-            </button>
-          </div>
+          {loading && (
+            <div className="text-center py-10 text-white/40 text-xs uppercase tracking-widest italic">
+              Loading...
+            </div>
+          )}
+
+          {!loading && items.length === 0 && !error && (
+            <div className="text-center py-10 border border-dashed border-white/10 rounded-2xl text-white/40 text-xs uppercase tracking-widest italic">
+              Belum ada sertifikat
+            </div>
+          )}
+
+          {items.map((cert) => (
+            <div
+              key={cert.id}
+              className="p-5 rounded-2xl border flex justify-between items-center backdrop-blur-md bg-black/40"
+              style={{ borderColor: lime }}
+            >
+              <div>
+                <p style={{ color: lime }} className="font-black uppercase tracking-tight">
+                  {cert.event?.nama ?? 'EVENT'}
+                </p>
+                <p className="text-xs text-white/60 font-bold tracking-tighter">
+                  {formatDate(cert.issuedAt)}
+                </p>
+                <p className="text-[10px] text-white/40 mt-1">{cert.certificateNumber}</p>
+              </div>
+
+              <a
+                href={cert.softFile}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2 rounded-full text-black font-black text-xs uppercase tracking-widest"
+                style={{ backgroundColor: lime }}
+              >
+                DOWNLOAD
+              </a>
+            </div>
+          ))}
         </div>
       </div>
       <BottomNav />

@@ -1,45 +1,41 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
-import { 
-  Home, 
-  FileText, 
-  Briefcase, 
-  User, 
-  ScanLine, 
-  Info,    
-  Image    
+import {
+  Home,
+  FileText,
+  Briefcase,
+  User,
+  ScanLine,
+  Info,
+  Image as ImageIcon,
 } from "lucide-react";
+
+const ADMIN_ROUTES = ["/admin", "/generate-qr", "/participants"];
+
+function isAdminPath(path: string): boolean {
+  return ADMIN_ROUTES.some((r) => path === r || path.startsWith(`${r}/`));
+}
 
 export default function BottomNav() {
   const router = useRouter();
   const path = usePathname();
   const lime = "#A3FF12";
-  
-  const [isAdminRole, setIsAdminRole] = useState(false);
 
-  useEffect(() => {
-    if (path.startsWith("/admin")) {
-      localStorage.setItem("userRole", "admin");
-      setIsAdminRole(true);
-    } else {
-      const savedRole = localStorage.getItem("userRole");
-      if (savedRole === "admin") {
-        setIsAdminRole(true);
-      } else {
-        setIsAdminRole(false);
-      }
-    }
-  }, [path]);
-
+  const isAdminRole = isAdminPath(path);
   const homeRoute = isAdminRole ? "/admin" : "/home";
 
-  const Item = ({ Icon, route }: { Icon: any; route: string }) => {
-    const isActive = route === "/admin" 
-      ? path === "/admin" || path.startsWith("/admin/")
-      : route === "/home"
-        ? (path === "/home" || path === "/fund" || path === "/rundown")
+  type ItemProps = {
+    Icon: React.ComponentType<{ size?: number; strokeWidth?: number; color?: string; style?: React.CSSProperties }>;
+    route: string;
+  };
+
+  const Item = ({ Icon, route }: ItemProps) => {
+    const isActive =
+      route === "/admin"
+        ? isAdminPath(path)
+        : route === "/home"
+        ? path === "/home" || path === "/fund" || path === "/rundown"
         : path === route;
 
     return (
@@ -54,9 +50,7 @@ export default function BottomNav() {
           strokeWidth={2.5}
           color={isActive ? lime : "white"}
           style={{
-            filter: isActive
-              ? `drop-shadow(0 0 6px ${lime})`
-              : "none",
+            filter: isActive ? `drop-shadow(0 0 6px ${lime})` : "none",
           }}
         />
       </button>
@@ -93,14 +87,12 @@ export default function BottomNav() {
             strokeWidth={2.5}
             color={isScanActive ? lime : "white"}
             style={{
-              filter: isScanActive
-                ? `drop-shadow(0 0 8px ${lime})`
-                : "none",
+              filter: isScanActive ? `drop-shadow(0 0 8px ${lime})` : "none",
             }}
           />
         </div>
 
-        <Item Icon={Image} route="/documentation" />
+        <Item Icon={ImageIcon} route="/documentation" />
         <Item Icon={Briefcase} route="/portfolio" />
         <Item Icon={User} route="/profile" />
       </div>

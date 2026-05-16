@@ -1,31 +1,44 @@
-import { Url } from "next/dist/shared/lib/router/router"
 import { ISODateString } from "./customType"
-import { UUID } from "crypto"
 import { EventData } from "./event"
 import { Peserta } from "./user"
+
 // data endpoint Certificate (CRUD)
 enum CertificateType {
-  PESERTA = "PESERTA",
-  KEJUARAAN = "KEJUARAAN",
-  PEMATERI = "PEMATERI",
+    PESERTA = "PESERTA",
+    KEJUARAAN = "KEJUARAAN",
+    PEMATERI = "PEMATERI",
 }
-interface CertificateUpdate{
-    certificateNumber?: string|null,
-    certificateType?: CertificateType|null,
-    softFile?: Url|null,
-    issuedAt?: ISODateString|null,
-    eventId?: UUID|null,
+
+interface CertificateUpdate {
+    certificateNumber?: string,
+    certificateType?: CertificateType,
+    softFile?: string,
+    issuedAt?: ISODateString,
+    eventId?: string,
 }
-interface CertificateCreate extends CertificateUpdate{
+
+interface CertificateCreate extends CertificateUpdate {
     certificateNumber: string,
     certificateType: CertificateType,
-    softFile: Url,
-    issuedAt: ISODateString
-    eventId: UUID,
-    pesertaId: UUID
+    softFile: string,
+    issuedAt: ISODateString,
+    eventId: string,
+    pesertaId: string,
 }
-interface CertificateData extends CertificateCreate{
-    event:EventData
-    peserta?:Peserta|null //hanya ada ketika user sekretaris
+
+interface CertificateData {
+    id: string,
+    certificateNumber: string,
+    certificateType: CertificateType,
+    softFile: string,
+    issuedAt: ISODateString,
+    eventId: string,
+    pesertaId: string,
+    createdAt: ISODateString,
+    updatedAt: ISODateString,
+    event: EventData,
+    peserta?: Pick<Peserta, "id" | "npm" | "nama"> & { email?: string | null }, //hanya ada ketika user sekretaris
 }
-export type {CertificateCreate, CertificateUpdate, CertificateData}
+
+export { CertificateType }
+export type { CertificateCreate, CertificateUpdate, CertificateData }

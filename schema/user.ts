@@ -1,33 +1,67 @@
-import { Timestamp } from "next/dist/server/lib/cache-handlers/types";
 // data endpoint User (READ)
+import { ISODateString } from "./customType";
+
 enum Role {
   SEKRETARIS = "SEKRETARIS",
   PESERTA = "PESERTA",
 }
-interface Sekretaris{
+interface Sekretaris {
     id: string,
     npm: string,
     nama: string
 }
-interface Peserta{
+interface Peserta {
     id: string,
     npm: string,
     nama: string,
+    email?: string | null,
+    firstLogin?: boolean,
 }
 
-interface User{
-    id:string,
-    username:string,
-    role:Role,
-    created_at: Timestamp,
-    updated_at: Timestamp,
-    peserta?: Peserta //ada jika role PESERTA
-    sekretaris?: Sekretaris //ada jika role SEKRETARIS
+interface User {
+    id: string,
+    username: string,
+    role: Role,
+    createdAt: ISODateString,
+    updatedAt: ISODateString,
+    peserta?: Peserta | null,      //ada jika role PESERTA
+    sekretaris?: Sekretaris | null //ada jika role SEKRETARIS
 }
+
+// User shape returned by /auth/login (different from /users/profile)
+interface LoginUser {
+    id: string,
+    username: string,
+    role: Role,
+    firstLogin: boolean,
+    profile: Peserta | Sekretaris | null,
+}
+
 // Data setelah hit ep login
-interface LoginData{
-    token:string,
-    user:User
+interface LoginData {
+    token: string,
+    user: LoginUser
 }
 
-export type { Sekretaris, Peserta, User, Role, LoginData}
+// Peserta list item shape returned by /peserta
+interface PesertaListItem {
+    userId: string,
+    username: string,
+    role: Role,
+    createdAt: ISODateString,
+    peserta: (Peserta & { totalAbsensi?: number }) | null,
+    totalAbsensi: number,
+}
+
+interface PaginatedResult<T> {
+    data: T[],
+    pagination: {
+        page: number,
+        limit: number,
+        total: number,
+        totalPages: number,
+    }
+}
+
+export { Role }
+export type { Sekretaris, Peserta, User, LoginUser, LoginData, PesertaListItem, PaginatedResult }

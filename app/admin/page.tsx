@@ -4,12 +4,13 @@ import BottomNav from '../components/BottomNav';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { 
-  faCircleDollarToSlot, 
-  faCalendarDays, 
-  faQrcode,           // Sudah diperbaiki: 'c' kecil
-  faUsersViewfinder 
+import {
+  faCircleDollarToSlot,
+  faCalendarDays,
+  faQrcode,
+  faUsersViewfinder,
 } from '@fortawesome/free-solid-svg-icons';
+import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 
 import { Space_Grotesk } from 'next/font/google';
 
@@ -19,11 +20,19 @@ const spaceGrotesk = Space_Grotesk({
   variable: '--font-space',
 });
 
+interface MenuCardProps {
+  title: string;
+  desc: string;
+  icon: IconDefinition;
+  link: string;
+  isSpecial?: boolean;
+}
+
 export default function AdminHomePage() {
   const lime = '#A3FF12';
   const router = useRouter();
 
-  const MenuCard = ({ title, desc, icon, link, isSpecial = false }: any) => (
+  const MenuCard = ({ title, desc, icon, link, isSpecial = false }: MenuCardProps) => (
     <motion.div
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}

@@ -1,72 +1,121 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { 
-  faSearch, faPen, faChevronRight, faChevronLeft, 
-  faChevronDown 
+import {
+  faSearch, faPen, faChevronRight, faChevronLeft,
+  faChevronDown,
 } from '@fortawesome/free-solid-svg-icons';
+import { pesertaAPI, attendanceAPI } from '@/utils/api/listAPI';
+import { PesertaListItem } from '@/schema/user';
+import { getErrorMessage, APIError } from '@/utils/api/safeRequest';
 
-const INITIAL_DATA = [
-  { id: 1, name: 'GANJAR PRANOWO', npm: '0123456801', hadir: true },
-  { id: 2, name: 'PRABOWO SUBIANTO', npm: '0123456802', hadir: false },
-  { id: 3, name: 'ANIES BASWEDAN', npm: '0123456803', hadir: true },
-  { id: 4, name: 'RIDWAN KAMIL', npm: '0123456804', hadir: true },
-  { id: 5, name: 'SANDIAGA UNO', npm: '0123456805', hadir: false },
-  { id: 6, name: 'GIBRAN RAKABUMING', npm: '0123456806', hadir: true },
-  { id: 7, name: 'ERIK THOHIR', npm: '0123456807', hadir: true },
-  { id: 8, name: 'SRI MULYANI', npm: '0123456808', hadir: true },
-  { id: 9, name: 'MAHFUD MD', npm: '0123456809', hadir: false },
-  { id: 10, name: 'MUHAIMIN ISKANDAR', npm: '0123456810', hadir: true },
-  { id: 11, name: 'NAJWA SHIHAB', npm: '0123456811', hadir: true },
-  { id: 12, name: 'RAFFI AHMAD', npm: '0123456812', hadir: false },
-  { id: 13, name: 'BASUKI HADIMULJONO', npm: '0123456813', hadir: true },
-  { id: 14, name: 'BUDI GUNADI', npm: '0123456814', hadir: true },
-  { id: 15, name: 'LUHUT PANDJAITAN', npm: '0123456815', hadir: false },
-  { id: 16, name: 'PUAN MAHARANI', npm: '0123456816', hadir: true },
-  { id: 17, name: 'AGUS HARIMURTI', npm: '0123456817', hadir: true },
-  { id: 18, name: 'DEDY CORBUZIER', npm: '0123456818', hadir: false },
-  { id: 19, name: 'KHAFIFAH INDAR', npm: '0123456819', hadir: true },
-  { id: 20, name: 'SURYOHADI', npm: '0123456820', hadir: true },
-].map(user => ({
-  ...user,
-  img: `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`
-}));
+interface Row {
+  id: string;        // userId
+  pesertaId: string | null;
+  name: string;
+  npm: string;
+  email: string | null;
+  hadir: boolean;
+  totalAbsensi: number;
+  img: string;
+}
+
+const ITEMS_PER_PAGE = 10;
+
+const toRow = (item: PesertaListItem): Row => {
+  const displayName = item.peserta?.nama ?? item.username;
+  return {
+    id: item.userId,
+    pesertaId: item.peserta?.id ?? null,
+    name: displayName,
+    npm: item.peserta?.npm ?? '-',
+    email: item.peserta?.email ?? null,
+    hadir: (item.totalAbsensi ?? 0) > 0,
+    totalAbsensi: item.totalAbsensi ?? 0,
+    img: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(displayName)}`,
+  };
+};
 
 export default function ParticipantPage() {
   const lime = '#A3FF12';
-  
-  const [participants, setParticipants] = useState(INITIAL_DATA);
+  const router = useRouter();
+
+  const [rows, setRows] = useState<Row[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedUser, setSelectedUser] = useState<any>(null);
-  
-  const itemsPerPage = 10;
+  const [selectedUser, setSelectedUser] = useState<Row | null>(null);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+  // Single effect: load data. Backend enforces role (returns 403 for non-sekretaris),
+  // so we redirect on auth failure instead of doing a separate role-check round trip.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await pesertaAPI.list({ limit: '200' });
+        if (cancelled) return;
+        setRows((res.data?.data ?? []).map(toRow));
+      } catch (err) {
+        if (cancelled) return;
+        const apiErr = err as APIError;
+        if (apiErr?.status === 401 || apiErr?.status === 403) {
+          router.replace('/home');
+          return;
+        }
+        setError(getErrorMessage(err, 'Gagal memuat data peserta'));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [router]);
 
   const filtered = useMemo(() => {
-    return participants.filter(p => 
-      p.name.toLowerCase().includes(searchTerm.toLowerCase()) || p.npm.includes(searchTerm)
+    const q = searchTerm.toLowerCase();
+    return rows.filter(
+      (p) => p.name.toLowerCase().includes(q) || p.npm.includes(searchTerm),
     );
-  }, [searchTerm, participants]);
+  }, [searchTerm, rows]);
 
-  const totalPages = Math.ceil(filtered.length / itemsPerPage);
-  const currentItems = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+  const currentItems = filtered.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE,
+  );
 
-  const handleUpdateStatus = (id: number, status: boolean) => {
-    setParticipants(prev => prev.map(p => p.id === id ? { ...p, hadir: status } : p));
-    setSelectedUser((prev: any) => ({ ...prev, hadir: status }));
+  const markPresent = async (row: Row) => {
+    if (row.npm === '-' || row.hadir) return;
+    setUpdatingId(row.id);
+    try {
+      await attendanceAPI.manual({ npm: row.npm });
+      setRows((prev) =>
+        prev.map((p) =>
+          p.id === row.id ? { ...p, hadir: true, totalAbsensi: p.totalAbsensi + 1 } : p,
+        ),
+      );
+      setSelectedUser((prev) => (prev && prev.id === row.id ? { ...prev, hadir: true } : prev));
+    } catch (err) {
+      setError(getErrorMessage(err, 'Gagal mencatat absensi'));
+    } finally {
+      setUpdatingId(null);
+    }
   };
 
   return (
     <main className="min-h-screen bg-black text-white p-6 pb-32 relative overflow-hidden">
-      <div 
-        className="fixed inset-0 z-0" 
-        style={{ 
-          backgroundImage: "url('/img/bg-texture.jpeg')", 
+      <div
+        className="fixed inset-0 z-0"
+        style={{
+          backgroundImage: "url('/img/bg-texture.jpeg')",
           backgroundSize: 'cover',
-          opacity: 0.5 
-        }} 
+          opacity: 0.5,
+        }}
       />
 
       <div className="relative z-10">
@@ -77,55 +126,90 @@ export default function ParticipantPage() {
           <input
             type="text"
             value={searchTerm}
-            onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1);
+            }}
             className="w-full bg-black/60 border-2 py-4 pl-12 pr-4 rounded-full outline-none text-sm tracking-widest transition-all focus:border-[#A3FF12]"
             style={{ borderColor: lime }}
             placeholder="CARI NAMA ATAU NPM..."
           />
         </div>
 
-        <div className="flex flex-col gap-4 min-h-[500px]">
-          <AnimatePresence mode="popLayout">
-            {currentItems.map((user) => (
-              <motion.div
-                key={user.id}
-                layout
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex items-center justify-between p-4 rounded-[1.5rem] border-2 bg-black/80 backdrop-blur-md"
-                style={{ borderColor: lime, boxShadow: `0 0 10px ${lime}22` }}
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-xl border-2 overflow-hidden bg-zinc-900" style={{ borderColor: lime }}>
-                    <img src={user.img} alt="avatar" className="w-full h-full object-cover" />
-                  </div>
-                  <div>
-                    <h3 className="font-black text-[13px] tracking-tighter" style={{ color: lime }}>{user.name}</h3>
-                    <p className="text-[10px] font-bold opacity-60 tracking-widest">{user.npm}</p>
-                    <div className="flex items-center gap-1 mt-1">
-                      <div className={`w-2 h-2 rounded-full ${user.hadir ? 'bg-[#A3FF12]' : 'bg-red-500'}`} />
-                      <span className="text-[8px] font-bold uppercase opacity-60">{user.hadir ? 'Hadir' : 'Tidak'}</span>
+        {error && (
+          <div className="mb-6 px-4 py-3 rounded-xl border border-red-400/40 text-red-300 text-xs">
+            {error}
+          </div>
+        )}
+
+        {loading ? (
+          <div className="text-center py-20 text-white/40 text-xs uppercase tracking-widest italic">
+            Loading...
+          </div>
+        ) : (
+          <div className="flex flex-col gap-4 min-h-125">
+            <AnimatePresence mode="popLayout">
+              {currentItems.map((user) => (
+                <motion.div
+                  key={user.id}
+                  layout
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-center justify-between p-4 rounded-3xl border-2 bg-black/80 backdrop-blur-md"
+                  style={{ borderColor: lime, boxShadow: `0 0 10px ${lime}22` }}
+                >
+                  <div className="flex items-center gap-4">
+                    <div
+                      className="w-14 h-14 rounded-xl border-2 overflow-hidden bg-zinc-900"
+                      style={{ borderColor: lime }}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={user.img} alt={`avatar of ${user.name}`} className="w-full h-full object-cover" />
+                    </div>
+                    <div>
+                      <h3 className="font-black text-[13px] tracking-tighter" style={{ color: lime }}>
+                        {user.name}
+                      </h3>
+                      <p className="text-[10px] font-bold opacity-60 tracking-widest">{user.npm}</p>
+                      <div className="flex items-center gap-1 mt-1">
+                        <div
+                          className={`w-2 h-2 rounded-full ${user.hadir ? 'bg-[#A3FF12]' : 'bg-red-500'}`}
+                        />
+                        <span className="text-[8px] font-bold uppercase opacity-60">
+                          {user.hadir ? 'Hadir' : 'Tidak'}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <button 
-                  onClick={() => setSelectedUser(user)}
-                  className="w-8 h-8 flex items-center justify-center rounded-full active:scale-75 transition-transform"
-                >
-                  <FontAwesomeIcon icon={faPen} style={{ color: lime }} className="text-sm" />
-                </button>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
+                  <button
+                    onClick={() => setSelectedUser(user)}
+                    className="w-8 h-8 flex items-center justify-center rounded-full active:scale-75 transition-transform"
+                  >
+                    <FontAwesomeIcon icon={faPen} style={{ color: lime }} className="text-sm" />
+                  </button>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+        )}
 
         {totalPages > 1 && (
           <div className="mt-10 flex justify-center items-center gap-8">
-            <button onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 1} className={currentPage === 1 ? 'opacity-10' : 'active:scale-90'}>
+            <button
+              onClick={() => setCurrentPage((p) => p - 1)}
+              disabled={currentPage === 1}
+              className={currentPage === 1 ? 'opacity-10' : 'active:scale-90'}
+            >
               <FontAwesomeIcon icon={faChevronLeft} style={{ color: lime }} className="text-xl" />
             </button>
-            <p className="text-xs font-black tracking-[0.3em] italic" style={{ color: lime }}>{currentPage} / {totalPages}</p>
-            <button onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage === totalPages} className={currentPage === totalPages ? 'opacity-10' : 'active:scale-90'}>
+            <p className="text-xs font-black tracking-[0.3em] italic" style={{ color: lime }}>
+              {currentPage} / {totalPages}
+            </p>
+            <button
+              onClick={() => setCurrentPage((p) => p + 1)}
+              disabled={currentPage === totalPages}
+              className={currentPage === totalPages ? 'opacity-10' : 'active:scale-90'}
+            >
               <FontAwesomeIcon icon={faChevronRight} style={{ color: lime }} className="text-xl" />
             </button>
           </div>
@@ -134,18 +218,18 @@ export default function ParticipantPage() {
 
       <AnimatePresence>
         {selectedUser && (
-          <motion.div 
+          <motion.div
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
             className="fixed inset-0 z-50 bg-black p-8 flex flex-col items-center"
           >
-             <div 
-              className="absolute inset-0 z-0" 
-              style={{ backgroundImage: "url('/img/bg-texture.jpeg')", backgroundSize: 'cover', opacity: 0.5 }} 
+            <div
+              className="absolute inset-0 z-0"
+              style={{ backgroundImage: "url('/img/bg-texture.jpeg')", backgroundSize: 'cover', opacity: 0.5 }}
             />
-            
+
             <div className="relative z-10 w-full max-w-md">
               <div className="w-full flex justify-end mb-6">
                 <button onClick={() => setSelectedUser(null)}>
@@ -154,38 +238,56 @@ export default function ParticipantPage() {
               </div>
 
               <div className="flex flex-col items-center mb-10">
-                <div className="w-32 h-32 rounded-full border-4 overflow-hidden bg-black mb-4" style={{ borderColor: lime, boxShadow: `0 0 20px ${lime}` }}>
-                  <img src={selectedUser.img} className="w-full h-full object-cover" />
+                <div
+                  className="w-32 h-32 rounded-full border-4 overflow-hidden bg-black mb-4"
+                  style={{ borderColor: lime, boxShadow: `0 0 20px ${lime}` }}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={selectedUser.img} alt={`avatar of ${selectedUser.name}`} className="w-full h-full object-cover" />
                 </div>
-                <h2 className="font-black text-xl tracking-widest text-center" style={{ color: lime }}>{selectedUser.name}</h2>
+                <h2 className="font-black text-xl tracking-widest text-center" style={{ color: lime }}>
+                  {selectedUser.name}
+                </h2>
               </div>
 
               <div className="space-y-4">
-                <div className="px-6 py-4 rounded-full border-2 bg-black/60 flex justify-between items-center" style={{ borderColor: lime }}>
+                <div
+                  className="px-6 py-4 rounded-full border-2 bg-black/60 flex justify-between items-center"
+                  style={{ borderColor: lime }}
+                >
                   <span className="text-[10px] font-black opacity-60 uppercase tracking-widest">NPM</span>
                   <span className="font-bold text-sm" style={{ color: lime }}>{selectedUser.npm}</span>
                 </div>
 
-                <div className="px-6 py-4 rounded-full border-2 bg-black/60 flex justify-between items-center" style={{ borderColor: lime }}>
-                  <span className="text-[10px] font-black opacity-60 uppercase tracking-widest">Kehadiran</span>
-                  <div className="flex gap-6">
-                    <button onClick={() => handleUpdateStatus(selectedUser.id, true)} className="flex items-center gap-2">
-                      <div className={`w-3 h-3 rounded-full ${selectedUser.hadir ? 'bg-[#A3FF12]' : 'border border-white'}`} style={{ boxShadow: selectedUser.hadir ? `0 0 10px ${lime}` : 'none' }} />
-                      <span className={`text-[10px] font-black ${selectedUser.hadir ? 'text-[#A3FF12]' : 'text-white'}`}>HADIR</span>
-                    </button>
-                    <button onClick={() => handleUpdateStatus(selectedUser.id, false)} className="flex items-center gap-2">
-                      <div className={`w-3 h-3 rounded-full ${!selectedUser.hadir ? 'bg-red-500' : 'border border-white'}`} />
-                      <span className={`text-[10px] font-black ${!selectedUser.hadir ? 'text-red-500' : 'text-white'}`}>TIDAK</span>
-                    </button>
-                  </div>
+                <div
+                  className="px-6 py-4 rounded-full border-2 bg-black/60 flex justify-between items-center"
+                  style={{ borderColor: lime }}
+                >
+                  <span className="text-[10px] font-black opacity-60 uppercase tracking-widest">Total Absensi</span>
+                  <span className="font-bold text-sm" style={{ color: lime }}>{selectedUser.totalAbsensi}</span>
                 </div>
 
-                <button 
-                  onClick={() => setSelectedUser(null)}
-                  className="w-full py-5 mt-8 rounded-full font-black text-black tracking-[0.3em] text-xs transition-all active:scale-95"
+                <div
+                  className="px-6 py-4 rounded-full border-2 bg-black/60 flex justify-between items-center"
+                  style={{ borderColor: lime }}
+                >
+                  <span className="text-[10px] font-black opacity-60 uppercase tracking-widest">Status</span>
+                  <span className={`text-[10px] font-black ${selectedUser.hadir ? 'text-[#A3FF12]' : 'text-red-500'}`}>
+                    {selectedUser.hadir ? 'HADIR' : 'BELUM ABSEN'}
+                  </span>
+                </div>
+
+                <button
+                  onClick={() => markPresent(selectedUser)}
+                  disabled={selectedUser.hadir || updatingId === selectedUser.id}
+                  className="w-full py-5 mt-8 rounded-full font-black text-black tracking-[0.3em] text-xs transition-all active:scale-95 disabled:opacity-50"
                   style={{ background: lime, boxShadow: `0 0 30px ${lime}66` }}
                 >
-                  UPDATE DATA
+                  {updatingId === selectedUser.id
+                    ? 'PROCESSING...'
+                    : selectedUser.hadir
+                    ? 'SUDAH HADIR'
+                    : 'TANDAI HADIR (MANUAL)'}
                 </button>
               </div>
             </div>

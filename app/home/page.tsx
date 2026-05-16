@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCircleDollarToSlot, faCalendarDays } from '@fortawesome/free-solid-svg-icons';
+import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 
 import { Space_Grotesk } from 'next/font/google';
 
@@ -14,11 +15,18 @@ const spaceGrotesk = Space_Grotesk({
   variable: '--font-space',
 });
 
+interface MenuCardProps {
+  title: string;
+  desc: string;
+  icon: IconDefinition;
+  link: string;
+}
+
 export default function HomePage() {
   const lime = '#A3FF12';
   const router = useRouter();
 
-  const MenuCard = ({ title, desc, icon, link }: any) => (
+  const MenuCard = ({ title, desc, icon, link }: MenuCardProps) => (
     <motion.div
       whileHover={{ scale: 1.02 }}
       onClick={() => router.push(link)}

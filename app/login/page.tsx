@@ -2,106 +2,66 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { Space_Grotesk } from 'next/font/google';
+import { Login } from '@/schema/request';
+import { handleObjectChange } from '@/utils/form/handleChange';
+import { authAPI } from '@/utils/api/listAPI';
+import { getErrorMessage } from '@/utils/api/safeRequest';
+import Token, { homeRouteForRole } from '@/utils/auth/token';
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
   weight: ['300', '400', '500', '700'],
 });
 
+type AlertState = { message: string; type: 'success' | 'error' };
+
 export default function LoginPage() {
   const router = useRouter();
 
-  const [npm, setNpm] = useState('');
-  const [password, setPassword] = useState('');
+  const [loginForm, setLoginForm] = useState<Login>({
+    username: '',
+    password: '',
+  });
   const [loading, setLoading] = useState(false);
 
-  const [alert, setAlert] = useState<{
-    message: string;
-    type: 'success' | 'error';
-  } | null>(null);
+  const [alert, setAlert] = useState<AlertState | null>(null);
 
   const green = '#A3FF12';
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (!npm || !password) {
-      setAlert({
-        message: 'Harap isi semua field!',
-        type: 'error',
-      });
+    if (!loginForm.username || !loginForm.password) {
+      setAlert({ message: 'Harap isi semua field!', type: 'error' });
       return;
     }
-
     setLoading(true);
-
     try {
-      const response = await fetch('/api/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          npm,
-          password,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        // simpan cookie login
-        document.cookie = `token=${data.user.role}; path=/`;
-
-        // simpan role
-        localStorage.setItem('userRole', data.user.role);
-
-        setAlert({
-          message: `Login Berhasil! Halo, ${data.user.name}`,
-          type: 'success',
-        });
-
-        setTimeout(() => {
-          if (data.user.role === 'admin') {
-            router.push('/admin');
-          } else {
-            router.push('/home');
-          }
-        }, 1500);
-      } else {
-        setAlert({
-          message: data.message || 'Login gagal!',
-          type: 'error',
-        });
-
-        setLoading(false);
+      const res = await authAPI.login(loginForm);
+      if (!res.data?.token) {
+        setAlert({ message: res.message || 'Login gagal', type: 'error' });
+        return;
       }
-    } catch (error) {
-      setAlert({
-        message: 'Terjadi kesalahan koneksi!',
-        type: 'error',
-      });
-
+      Token.login(res.data.token, res.data.user);
+      router.replace(homeRouteForRole(res.data.user.role));
+    } catch (err) {
+      setAlert({ message: getErrorMessage(err, 'Login failed. Please try again.'), type: 'error' });
+    } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
     if (alert) {
-      const timer = setTimeout(() => {
-        setAlert(null);
-      }, 3000);
-
+      const timer = setTimeout(() => setAlert(null), 3000);
       return () => clearTimeout(timer);
     }
   }, [alert]);
 
-  const handleNpmChange = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    setNpm(e.target.value);
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    handleObjectChange<Login>(e, setLoginForm);
   };
 
   return (
@@ -163,40 +123,32 @@ export default function LoginPage() {
 
         {/* Logo */}
         <div className="flex justify-center mb-6">
-          <img
-            src="/img/logo.png"
-            className="w-24"
-            alt="Logo"
-          />
+          <img src="/img/logo.png" className="w-24" alt="Logo" />
         </div>
 
         {/* Form */}
         <form onSubmit={handleLogin} className="space-y-5">
-          {/* NPM */}
+          {/* Username */}
           <div>
-            <label className="text-white text-sm opacity-60">
-              NPM
-            </label>
-
+            <label className="text-white text-sm opacity-60">Username</label>
             <input
               autoComplete="off"
-              value={npm}
-              onChange={handleNpmChange}
+              name="username"
+              value={loginForm.username}
+              onChange={handleFormChange}
               className="w-full mt-1 p-4 rounded-xl bg-black/40 border border-[#A3FF12]/30 text-white outline-none focus:border-[#A3FF12] transition-colors"
-              placeholder="Masukkan NPM"
+              placeholder="Masukkan Username"
             />
           </div>
 
           {/* Password */}
           <div>
-            <label className="text-white text-sm opacity-60">
-              Password
-            </label>
-
+            <label className="text-white text-sm opacity-60">Password</label>
             <input
               type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              name="password"
+              value={loginForm.password}
+              onChange={handleFormChange}
               className="w-full mt-1 p-4 rounded-xl bg-black/40 border border-[#A3FF12]/30 text-white outline-none focus:border-[#A3FF12] transition-colors"
               placeholder="********"
             />
@@ -208,15 +160,11 @@ export default function LoginPage() {
             whileTap={{ scale: 0.95 }}
             disabled={loading}
             className={`w-full py-4 rounded-full font-bold text-black uppercase tracking-widest transition-all ${
-              loading
-                ? 'opacity-50 cursor-not-allowed'
-                : 'opacity-100'
+              loading ? 'opacity-50 cursor-not-allowed' : 'opacity-100'
             }`}
             style={{
               background: green,
-              boxShadow: loading
-                ? 'none'
-                : '0 0 20px #A3FF12',
+              boxShadow: loading ? 'none' : '0 0 20px #A3FF12',
             }}
           >
             {loading ? 'VERIFYING...' : 'LOGIN'}

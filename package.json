@@ -13,13 +13,11 @@
     "@fortawesome/free-brands-svg-icons": "^7.2.0",
     "@fortawesome/free-solid-svg-icons": "^7.2.0",
     "@fortawesome/react-fontawesome": "^3.3.1",
-    "@prisma/client": "^7.8.0",
     "@yudiel/react-qr-scanner": "^2.5.1",
     "framer-motion": "^12.38.0",
     "html5-qrcode": "^2.3.8",
     "lucide-react": "^1.8.0",
     "next": "^16.2.4",
-    "prisma": "^7.8.0",
     "qrcode.react": "^4.2.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"

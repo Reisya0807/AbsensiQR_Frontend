@@ -1,11 +1,14 @@
 'use client';
 
-import { useState } from 'react';
-import { Scanner } from '@yudiel/react-qr-scanner';
+import { useState, useEffect } from 'react';
+import { Scanner, IDetectedBarcode } from '@yudiel/react-qr-scanner';
 import BottomNav from '../components/BottomNav';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCamera } from '@fortawesome/free-solid-svg-icons';
 import { Space_Grotesk } from 'next/font/google';
+import { attendanceAPI } from '@/utils/api/listAPI';
+import { ScanAttandance } from '@/schema/request';
+import { getErrorMessage } from '@/utils/api/safeRequest';
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
@@ -13,48 +16,91 @@ const spaceGrotesk = Space_Grotesk({
   variable: '--font-space',
 });
 
+type ScanStatus = 'idle' | 'success' | 'failed' | 'submitting';
+
 export default function ScanPage() {
   const lime = '#A3FF12';
   const [isScanning, setIsScanning] = useState(false);
-  const [status, setStatus] = useState<'idle' | 'success' | 'failed'>('idle');
-  const [scanResult, setScanResult] = useState('');
+  const [status, setStatus] = useState<ScanStatus>('idle');
+  const [message, setMessage] = useState<string>('');
 
-  const handleScan = (result: any) => {
-    if (result && result.length > 0) {
-      setScanResult(result[0].rawValue);
+  const extractToken = (raw: string): string => {
+    try {
+      const parsed = JSON.parse(raw) as { token?: string };
+      if (parsed && typeof parsed.token === 'string') return parsed.token;
+    } catch {
+      /* not json, fall through */
+    }
+    return raw;
+  };
+
+  const handleScan = async (results: IDetectedBarcode[]) => {
+    if (!results || results.length === 0) return;
+    const raw = results[0].rawValue;
+    setIsScanning(false);
+    setStatus('submitting');
+    setMessage('Memvalidasi QR...');
+
+    const payload: ScanAttandance = { token: extractToken(raw) };
+    try {
+      const res = await attendanceAPI.scan(payload);
       setStatus('success');
-      setIsScanning(false);
-      setTimeout(() => setStatus('idle'), 3000);
+      setMessage(res.message || 'Absensi berhasil');
+    } catch (err) {
+      setStatus('failed');
+      setMessage(getErrorMessage(err, 'QR tidak valid'));
     }
   };
 
-  const handleError = (error: any) => {
+  const handleError = (error: unknown) => {
     console.error(error);
     setStatus('failed');
+    setMessage('Gagal mengakses kamera');
     setIsScanning(false);
-    setTimeout(() => setStatus('idle'), 3000);
   };
 
+  useEffect(() => {
+    if (status === 'idle' || status === 'submitting') return;
+    const t = setTimeout(() => {
+      setStatus('idle');
+      setMessage('');
+    }, 3000);
+    return () => clearTimeout(t);
+  }, [status]);
+
   return (
-    <main className={`${spaceGrotesk.className} relative min-h-screen text-white flex items-center justify-center pb-28 overflow-hidden bg-black`}>
+    <main
+      className={`${spaceGrotesk.className} relative min-h-screen text-white flex items-center justify-center pb-28 overflow-hidden bg-black`}
+    >
       <div className="absolute inset-0 bg-[url('/img/bg-texture.jpeg')] bg-cover bg-center opacity-30" />
 
       {status !== 'idle' && (
         <div className="absolute top-10 z-50 animate-bounce">
-          <div className="w-[300px] p-4 rounded-2xl flex flex-col items-center border-[1.5px] bg-black/90 backdrop-blur-md" style={{ borderColor: lime }}>
+          <div
+            className="w-[300px] p-4 rounded-2xl flex flex-col items-center border-[1.5px] bg-black/90 backdrop-blur-md"
+            style={{ borderColor: lime }}
+          >
             <h3 className="font-bold text-sm tracking-widest mb-1" style={{ color: lime }}>
-              {status === 'success' ? 'SCAN SUCCESS' : 'SCAN FAILED'}
+              {status === 'success'
+                ? 'SCAN SUCCESS'
+                : status === 'submitting'
+                ? 'PROCESSING'
+                : 'SCAN FAILED'}
             </h3>
-            <p className="text-[10px] uppercase opacity-80">
-              {status === 'success' ? `Result: ${scanResult}` : 'PLEASE TRY AGAIN :('}
-            </p>
+            <p className="text-[10px] uppercase opacity-80 text-center">{message}</p>
           </div>
         </div>
       )}
 
-      <div className="relative z-10 w-[320px] p-8 rounded-[40px] text-center border-[1.5px] bg-black/60 backdrop-blur-xl" style={{ borderColor: `${lime}66` }}>
+      <div
+        className="relative z-10 w-[320px] p-8 rounded-[40px] text-center border-[1.5px] bg-black/60 backdrop-blur-xl"
+        style={{ borderColor: `${lime}66` }}
+      >
         <div className="flex justify-center mb-5">
-          <div className="w-14 h-14 rounded-full border flex items-center justify-center shadow-[0_0_15px_#A3FF12]" style={{ borderColor: lime }}>
+          <div
+            className="w-14 h-14 rounded-full border flex items-center justify-center shadow-[0_0_15px_#A3FF12]"
+            style={{ borderColor: lime }}
+          >
             <FontAwesomeIcon icon={faCamera} style={{ color: lime }} />
           </div>
         </div>
@@ -71,28 +117,27 @@ export default function ScanPage() {
               onError={handleError}
               allowMultiple={false}
               scanDelay={2000}
-              components={{
-                finder: false,
-              }}
-              styles={{
-                container: { width: '100%', height: '100%' }
-              }}
+              components={{ finder: false }}
+              styles={{ container: { width: '100%', height: '100%' } }}
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-zinc-900">
-               <FontAwesomeIcon icon={faCamera} className="text-3xl opacity-10" />
+              <FontAwesomeIcon icon={faCamera} className="text-3xl opacity-10" />
             </div>
           )}
-          
-          {isScanning && <div className="absolute left-0 w-full h-[2px] bg-[#A3FF12] shadow-[0_0_15px_#A3FF12] animate-scan z-20" />}
-          
+
+          {isScanning && (
+            <div className="absolute left-0 w-full h-[2px] bg-[#A3FF12] shadow-[0_0_15px_#A3FF12] animate-scan z-20" />
+          )}
+
           <Corner pos="tl" /> <Corner pos="tr" />
           <Corner pos="bl" /> <Corner pos="br" />
         </div>
 
         <button
-          onClick={() => setIsScanning(!isScanning)}
-          className="w-full py-3.5 rounded-full font-black text-[10px] tracking-widest transition-all"
+          onClick={() => setIsScanning((v) => !v)}
+          disabled={status === 'submitting'}
+          className="w-full py-3.5 rounded-full font-black text-[10px] tracking-widest transition-all disabled:opacity-50"
           style={{
             backgroundColor: isScanning ? 'transparent' : lime,
             color: isScanning ? lime : 'black',

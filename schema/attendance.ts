@@ -1,16 +1,19 @@
-import { UUID } from "crypto"
 import { ISODateString } from "./customType"
 import { Peserta } from "./user"
 
-type hadir =1|0
-type scanMethod = "QR_SCAN" | "MANUAL"
+type AttendanceStatus = 0 | 1
+type ScanMethod = "QR_SCAN" | "MANUAL"
+
 interface AttendanceData {
-    id: UUID,
-    status: hadir
+    id: string,
+    status: AttendanceStatus,
     timestamp: ISODateString,
-    method: scanMethod,
-    pesertaID: UUID,
-    qrTokenID: UUID | null,
-    peserta : Peserta
+    method: ScanMethod,
+    pesertaId: string,
+    qrTokenId: string | null,
+    peserta: Pick<Peserta, "id" | "npm" | "nama"> & { email?: string | null },
+    createdAt?: ISODateString,
+    updatedAt?: ISODateString,
 }
-export type {AttendanceData}
+
+export type { AttendanceData, AttendanceStatus, ScanMethod }

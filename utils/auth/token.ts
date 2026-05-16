@@ -1,4 +1,3 @@
-import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { LoginUser, Role } from "@/schema/user";
 
 const TOKEN_KEY = "token";
@@ -21,28 +20,24 @@ class Token {
         if (typeof document === "undefined") return;
         document.cookie = `${TOKEN_KEY}=${encodeURIComponent(token)}; path=/`;
     }
+    static setFirstLogin(isFirst: boolean) {
+        console.log("Setting firstLogin cookie to", isFirst);
+        if (typeof document === "undefined") return;
+        document.cookie = `firstLogin=${isFirst}; path=/`;
+    }
+    static getFirstLogin(): boolean {
+        if (typeof document === "undefined") return false;
+        const match = document.cookie
+            .split("; ")
+            .find((row) => row.startsWith(`firstLogin=`));
+        return match ? match.split("=")[1] === "true" : false;
+    }
 
     static rmToken() {
         if (typeof document !== "undefined") {
             document.cookie = `${TOKEN_KEY}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
         }
-        if (typeof localStorage !== "undefined") {
-            localStorage.removeItem(TOKEN_KEY);
-            localStorage.removeItem(USER_KEY);
-            localStorage.removeItem("isLogin");
-        }
     }
-
-    static setIsLogin(status: boolean) {
-        if (typeof localStorage === "undefined") return;
-        localStorage.setItem("isLogin", String(status));
-    }
-
-    static getIsLogin(): boolean {
-        if (typeof localStorage === "undefined") return false;
-        return localStorage.getItem("isLogin") === "true";
-    }
-
     static setUser(user: LoginUser) {
         if (typeof localStorage === "undefined") return;
         localStorage.setItem(USER_KEY, JSON.stringify(user));
@@ -59,19 +54,16 @@ class Token {
         }
     }
 
-    static login(token: string, user?: LoginUser, router?: AppRouterInstance) {
+    static login(token: string, user?: LoginUser, isFirstLogin: boolean = false) {
         Token.setToken(token);
-        Token.setIsLogin(true);
+        Token.setFirstLogin(isFirstLogin);
         if (user) Token.setUser(user);
-        if (router) {
-            router.replace(homeRouteForRole(user?.role));
-        }
+
     }
 
-    static logout(router?: AppRouterInstance) {
+    static logout() {
         Token.rmToken();
-        Token.setIsLogin(false);
-        if (router) router.replace("/login");
+        Token.setFirstLogin(false);
     }
 }
 

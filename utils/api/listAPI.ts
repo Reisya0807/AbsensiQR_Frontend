@@ -6,7 +6,6 @@ import UserService from "./services/UserService";
 import CertificateService from "./services/CertificateService";
 import PortfolioService from "./services/PortfolioService";
 import PesertaService from "./services/PesertaService";
-import RundownService from "./services/RundownService";
 
 const baseurl = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:5000/api"
 const endpoints = {
@@ -29,7 +28,6 @@ const eventAPI = new EventService(endpoints.event)
 const certificateAPI = new CertificateService(endpoints.certificate)
 const pesertaAPI = new PesertaService(endpoints.peserta)
 const portfolioAPI = new PortfolioService(endpoints.portfolio)
-const rundownAPI = new RundownService(endpoints.rundown)
 
 
 export {
@@ -42,5 +40,4 @@ export {
     certificateAPI,
     pesertaAPI,
     portfolioAPI,
-    rundownAPI,
 }

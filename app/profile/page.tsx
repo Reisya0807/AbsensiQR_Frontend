@@ -23,6 +23,7 @@ import { ChangePassword } from '@/schema/request';
 import { handleObjectChange } from '@/utils/form/handleChange';
 import { getErrorMessage } from '@/utils/api/safeRequest';
 import Alert from '../components/Alert';
+import { useSearchParams } from 'next/navigation';
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
@@ -31,6 +32,8 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export default function ProfilePage() {
+  const searchParams = useSearchParams();
+  const isFirstLogin = searchParams.get('set-password') === 'true';
   const lime = '#A3FF12';
   const router = useRouter();
 
@@ -63,10 +66,15 @@ export default function ProfilePage() {
     }
 
     try {
-      await userAPI.changePassword(formChangePass);
+      const result = await userAPI.changePassword(formChangePass);
       setAlert({ message: 'Password berhasil diubah', type: 'success' });
       setOpenEdit(false);
       setFormChangePass({ oldPassword: "", newPassword: "", confirmPassword: "" });
+      if (profile?.peserta?.firstLogin && result.success) {
+        Token.setFirstLogin(false);
+        router.push('/home');
+        setProfile((prev) => prev ? { ...prev, peserta: prev.peserta ? { ...prev.peserta, firstLogin: false } : undefined } : null);
+      }
     } catch (err) {
       setAlert({ message: getErrorMessage(err, 'Gagal mengubah password'), type: 'error' });
     }
@@ -174,14 +182,17 @@ export default function ProfilePage() {
       </div>
 
       {/* POPUP EDIT */}
-      {openEdit && (
+      {(openEdit || isFirstLogin) && (
         <form className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm" onSubmit={handleSave}>
           <div className="p-0.5 rounded-[28px] bg-[#A3FF12] shadow-[0_0_25px_#A3FF12]">
             <div className="bg-black rounded-[26px] p-8 pt-10 w-[320px] relative">
               <X
                 className="absolute top-3 right-3 text-[#A3FF12] cursor-pointer"
                 size={20}
-                onClick={() => setOpenEdit(false)}
+                onClick={() => {
+                  router.replace('/profile')
+                  setOpenEdit(false)
+                }}
               />
 
               <div className="space-y-4 mt-4">

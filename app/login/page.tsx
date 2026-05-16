@@ -46,7 +46,7 @@ export default function LoginPage() {
         setAlert({ message: res.message || 'Login gagal', type: 'error' });
         return;
       }
-      Token.login(res.data.token, res.data.user);
+      Token.login(res.data.token, res.data.user, res.data.user.firstLogin);
       router.replace('/home');
     } catch (err) {
       setAlert({ message: getErrorMessage(err, 'Login failed. Please try again.'), type: 'error' });

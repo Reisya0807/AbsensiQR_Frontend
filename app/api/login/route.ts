@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+
     const { npm, password } = body;
 
     // Dummy Admin
@@ -10,7 +11,7 @@ export async function POST(request: Request) {
       npm: '12345678',
       password: 'pwsekre',
       role: 'admin',
-      name: 'Sekretaris'
+      name: 'Sekretaris',
     };
 
     // Dummy User
@@ -18,32 +19,68 @@ export async function POST(request: Request) {
       npm: '87654321',
       password: 'pwuser',
       role: 'user',
-      name: 'Mahasiswa'
+      name: 'Mahasiswa',
     };
 
-    if (npm === adminDummy.npm && password === adminDummy.password) {
-      return NextResponse.json({
-        success: true,
-        user: { name: adminDummy.name, role: adminDummy.role }
-      });
-    } 
-    
-    if (npm === userDummy.npm && password === userDummy.password) {
-      return NextResponse.json({
-        success: true,
-        user: { name: userDummy.name, role: userDummy.role }
-      });
+    let user = null;
+
+    // cek admin
+    if (
+      npm === adminDummy.npm &&
+      password === adminDummy.password
+    ) {
+      user = adminDummy;
     }
 
-    return NextResponse.json(
-      { success: false, message: 'NPM atau Password salah!' },
-      { status: 401 }
-    );
+    // cek user
+    else if (
+      npm === userDummy.npm &&
+      password === userDummy.password
+    ) {
+      user = userDummy;
+    }
 
+    // jika login gagal
+    if (!user) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'NPM atau Password salah!',
+        },
+        {
+          status: 401,
+        }
+      );
+    }
+
+    // response sukses
+    const response = NextResponse.json({
+      success: true,
+      user: {
+        name: user.name,
+        role: user.role,
+      },
+    });
+
+    // simpan cookie login
+    response.cookies.set('token', user.role, {
+      httpOnly: false,
+      secure: false,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24, // 1 hari
+    });
+
+    return response;
   } catch (error) {
     return NextResponse.json(
-      { success: false, message: 'Server Error' },
-      { status: 500 }
+      {
+        success: false,
+        message: 'Server Error',
+      },
+      {
+        status: 500,
+      }
     );
   }
 }

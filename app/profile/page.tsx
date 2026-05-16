@@ -4,7 +4,14 @@ import BottomNav from '../components/BottomNav';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUser, faEnvelope, faPhone, faCalendar, faRightFromBracket } from '@fortawesome/free-solid-svg-icons';
+import {
+  faUser,
+  faEnvelope,
+  faPhone,
+  faCalendar,
+  faRightFromBracket,
+  faLock,
+} from '@fortawesome/free-solid-svg-icons';
 import { X } from 'lucide-react';
 import { Space_Grotesk } from 'next/font/google';
 
@@ -22,47 +29,66 @@ export default function ProfilePage() {
     name: 'WILSON LOSIENTO',
     email: 'alex.johnson@email.com',
     phone: '+1 555 123',
-    year: '2025/2026',
+    angkatan: '2025',
     image: '/img/profile.png',
   });
 
   const [openEdit, setOpenEdit] = useState(false);
   const [openSignout, setOpenSignout] = useState(false);
 
-  const [form, setForm] = useState(profile);
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
-  const handleChange = (e: any) => {
-    setForm({
-      ...form,
-      [e.target.name]: e.target.value,
-    });
-  };
+  const [formImage, setFormImage] = useState(profile.image);
 
+  // GANTI FOTO
   const handleImageChange = (e: any) => {
     const file = e.target.files[0];
+
     if (!file) return;
 
     const imageUrl = URL.createObjectURL(file);
 
-    setForm({
-      ...form,
-      image: imageUrl,
-    });
+    setFormImage(imageUrl);
   };
 
+  // SAVE
   const handleSave = () => {
-    setProfile(form);
+    if (password && password !== confirmPassword) {
+      alert('Password tidak sama!');
+      return;
+    }
+
+    setProfile({
+      ...profile,
+      image: formImage,
+    });
+
+    setPassword('');
+    setConfirmPassword('');
+
     setOpenEdit(false);
   };
 
+  // LOGOUT
   const handleSignOut = () => {
-    localStorage.removeItem('token');
+    // hapus cookie token
+    document.cookie =
+      'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+
+    // hapus local storage
+    localStorage.removeItem('userRole');
+
     setOpenSignout(false);
+
     router.replace('/login');
   };
 
   return (
-    <main className={`${spaceGrotesk.className} relative min-h-screen text-white pb-28`}>
+    <main
+      className={`${spaceGrotesk.className} relative min-h-screen text-white pb-28`}
+    >
+      {/* BACKGROUND */}
       <div className="absolute inset-0 bg-[url('/img/bg-texture.jpeg')] bg-cover bg-center" />
       <div className="absolute inset-0 bg-black/60" />
 
@@ -77,20 +103,21 @@ export default function ProfilePage() {
           }}
         />
 
-        {/* NAME */}
+        {/* NAMA */}
         <div className="flex items-center gap-2 mt-6 uppercase">
           <FontAwesomeIcon icon={faUser} color={lime} />
-          <h2 className="text-xl font-black" style={{ color: lime }}>
+
+          <h2
+            className="text-xl font-black"
+            style={{ color: lime }}
+          >
             {profile.name}
           </h2>
         </div>
 
         {/* EDIT */}
         <button
-          onClick={() => {
-            setForm(profile);
-            setOpenEdit(true);
-          }}
+          onClick={() => setOpenEdit(true)}
           className="mt-3 px-6 py-2 rounded-full text-black font-black text-xs uppercase active:scale-95"
           style={{ backgroundColor: lime }}
         >
@@ -99,9 +126,15 @@ export default function ProfilePage() {
 
         {/* INFO */}
         <div className="mt-8 w-full max-w-md px-4">
-          <div className="p-6 rounded-[2rem] border-2 backdrop-blur-xl bg-black/40 space-y-4" style={{ borderColor: lime }}>
+          <div
+            className="p-6 rounded-[2rem] border-2 backdrop-blur-xl bg-black/40 space-y-4"
+            style={{ borderColor: lime }}
+          >
             <div className="flex items-center gap-4 text-xs font-bold">
-              <FontAwesomeIcon icon={faEnvelope} color={lime} />
+              <FontAwesomeIcon
+                icon={faEnvelope}
+                color={lime}
+              />
               <p>{profile.email}</p>
             </div>
 
@@ -110,15 +143,28 @@ export default function ProfilePage() {
               <p>{profile.phone}</p>
             </div>
 
+            {/* ANGKATAN */}
             <div className="flex items-center gap-4 text-xs font-bold">
-              <FontAwesomeIcon icon={faCalendar} color={lime} />
-              <p>{profile.year}</p>
+              <FontAwesomeIcon
+                icon={faCalendar}
+                color={lime}
+              />
+              <p>ANGKATAN {profile.angkatan}</p>
             </div>
           </div>
 
           {/* SIGN OUT */}
-          <button onClick={() => setOpenSignout(true)} className="w-full mt-6 py-4 border-2 rounded-2xl flex items-center justify-center gap-3 font-black text-sm uppercase" style={{ borderColor: lime, color: lime }}>
-            <FontAwesomeIcon icon={faRightFromBracket} />
+          <button
+            onClick={() => setOpenSignout(true)}
+            className="w-full mt-6 py-4 border-2 rounded-2xl flex items-center justify-center gap-3 font-black text-sm uppercase"
+            style={{
+              borderColor: lime,
+              color: lime,
+            }}
+          >
+            <FontAwesomeIcon
+              icon={faRightFromBracket}
+            />
             SIGN OUT
           </button>
         </div>
@@ -129,24 +175,66 @@ export default function ProfilePage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
           <div className="p-[2px] rounded-[28px] bg-[#A3FF12] shadow-[0_0_25px_#A3FF12]">
             <div className="bg-black rounded-[26px] p-8 pt-10 w-[320px] relative">
-              <X className="absolute top-3 right-3 text-[#A3FF12] cursor-pointer" size={20} onClick={() => setOpenEdit(false)} />
+              {/* CLOSE */}
+              <X
+                className="absolute top-3 right-3 text-[#A3FF12] cursor-pointer"
+                size={20}
+                onClick={() => setOpenEdit(false)}
+              />
 
-              {/* FOTO EDIT */}
-              <div className="flex justify-center mb-4">
-                <label className="cursor-pointer">
-                  <img src={form.image} className="w-20 h-20 rounded-full object-cover border" style={{ borderColor: lime }} />
-                  <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+              {/* FOTO */}
+              <div className="flex justify-center mb-6">
+                <label className="cursor-pointer relative">
+                  <img
+                    src={formImage}
+                    className="w-24 h-24 rounded-full object-cover border-2"
+                    style={{
+                      borderColor: lime,
+                    }}
+                  />
+
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="hidden"
+                  />
+
+                  <div className="absolute bottom-0 right-0 bg-[#A3FF12] text-black text-[10px] px-2 py-1 rounded-full font-black">
+                    EDIT
+                  </div>
                 </label>
               </div>
 
-              <Input label="NAME" name="name" value={form.name} onChange={handleChange} />
-              <Input label="PHONE" name="phone" value={form.phone} onChange={handleChange} />
+              {/* PASSWORD */}
+              <div className="space-y-4">
+                <Input
+                  icon={faLock}
+                  placeholder="NEW PASSWORD"
+                  type="password"
+                  value={password}
+                  onChange={(e: any) =>
+                    setPassword(e.target.value)
+                  }
+                />
 
-              {/* LOCKED */}
-              <Input label="ACADEMIC YEAR" name="year" value={form.year} onChange={handleChange} readOnly />
+                <Input
+                  icon={faLock}
+                  placeholder="CONFIRM PASSWORD"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e: any) =>
+                    setConfirmPassword(e.target.value)
+                  }
+                />
+              </div>
 
+              {/* SAVE */}
               <div className="flex justify-center mt-6">
-                <button onClick={handleSave} className="px-8 py-2 rounded-full bg-[#A3FF12] text-black font-black text-xs active:scale-95">
+                <button
+                  onClick={handleSave}
+                  className="px-8 py-2 rounded-full bg-[#A3FF12] text-black font-black text-xs active:scale-95"
+                >
                   SAVE
                 </button>
               </div>
@@ -155,19 +243,28 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* POPUP SIGN OUT */}
+      {/* POPUP LOGOUT */}
       {openSignout && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
           <div className="p-[2px] rounded-[20px] bg-[#A3FF12] shadow-[0_0_20px_#A3FF12]">
             <div className="bg-black rounded-[18px] px-6 py-6 w-[280px] text-center">
-              <p className="text-[#A3FF12] font-black text-sm mb-4 uppercase">ARE YOU SURE ?</p>
+              <p className="text-[#A3FF12] font-black text-sm mb-4 uppercase">
+                ARE YOU SURE ?
+              </p>
 
               <div className="flex gap-3">
-                <button onClick={() => setOpenSignout(false)} className="flex-1 py-2 rounded-full border text-[#A3FF12] text-xs font-bold" style={{ borderColor: lime }}>
+                <button
+                  onClick={() => setOpenSignout(false)}
+                  className="flex-1 py-2 rounded-full border text-[#A3FF12] text-xs font-bold"
+                  style={{ borderColor: lime }}
+                >
                   MAYBE LATER
                 </button>
 
-                <button onClick={handleSignOut} className="flex-1 py-2 rounded-full bg-[#A3FF12] text-black text-xs font-black">
+                <button
+                  onClick={handleSignOut}
+                  className="flex-1 py-2 rounded-full bg-[#A3FF12] text-black text-xs font-black"
+                >
                   YEAH
                 </button>
               </div>
@@ -181,14 +278,29 @@ export default function ProfilePage() {
   );
 }
 
-function Input({ label, name, value, onChange, readOnly = false }: any) {
+function Input({
+  icon,
+  placeholder,
+  type = 'text',
+  value,
+  onChange,
+}: any) {
   return (
-    <div className="mb-4">
-      <div className="p-[1.5px] rounded-full bg-[#A3FF12]/70">
-        <div className="bg-black rounded-full px-4 py-2 flex justify-between items-center text-xs">
-          <span className="text-white/50">{label}</span>
-          <input name={name} value={value} onChange={readOnly ? undefined : onChange} readOnly={readOnly} className={`bg-transparent text-right outline-none w-40 ${readOnly ? 'text-white/40 cursor-not-allowed' : 'text-[#A3FF12]'}`} />
-        </div>
+    <div className="p-[1.5px] rounded-full bg-[#A3FF12]/70">
+      <div className="bg-black rounded-full px-4 py-3 flex items-center gap-3">
+        <FontAwesomeIcon
+          icon={icon}
+          color="#A3FF12"
+          className="text-sm"
+        />
+
+        <input
+          type={type}
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          className="bg-transparent text-[#A3FF12] placeholder:text-white/40 outline-none text-xs w-full"
+        />
       </div>
     </div>
   );

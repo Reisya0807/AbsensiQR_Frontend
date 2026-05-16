@@ -8,7 +8,7 @@ import { faCircleDollarToSlot, faCalendarDays, faQrcode, faUsersViewfinder } fro
 import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import Image from 'next/image';
 import { Space_Grotesk } from 'next/font/google';
-import { useState } from 'react';
+import { useSyncExternalStore } from 'react';
 import Token from '@/utils/auth/token';
 import { Role } from '@/schema/user';
 
@@ -17,6 +17,10 @@ const spaceGrotesk = Space_Grotesk({
   weight: ['300', '400', '500', '700'],
   variable: '--font-space',
 });
+
+function subscribe() { return () => {}; }
+function getSnapshot() { return true; }
+function getServerSnapshot() { return false; }
 
 interface MenuCardProps {
   title: string;
@@ -46,7 +50,6 @@ function MenuCard({ title, desc, icon, link, isSpecial = false }: MenuCardProps)
         <div className="w-12 h-12 rounded-xl flex items-center justify-center border-2" style={{ borderColor: isSpecial ? '#FFFFFF' : lime }}>
           <FontAwesomeIcon icon={icon} style={{ color: isSpecial ? '#FFFFFF' : lime }} className="text-xl" />
         </div>
-
         <div>
           <p className="text-sm font-black tracking-wider uppercase" style={{ color: isSpecial ? '#FFFFFF' : lime }}>
             {title}
@@ -54,10 +57,7 @@ function MenuCard({ title, desc, icon, link, isSpecial = false }: MenuCardProps)
           <p className="text-[10px] font-bold text-white/60 uppercase tracking-tighter">{desc}</p>
         </div>
       </div>
-
-      <span className="font-black text-xl" style={{ color: isSpecial ? '#FFFFFF' : lime }}>
-        →
-      </span>
+      <span className="font-black text-xl" style={{ color: isSpecial ? '#FFFFFF' : lime }}>→</span>
     </motion.div>
   );
 }
@@ -65,8 +65,9 @@ function MenuCard({ title, desc, icon, link, isSpecial = false }: MenuCardProps)
 export default function HomePage() {
   const lime = '#A3FF12';
   const router = useRouter();
-  const user = Token.getUser();
-  const [isAdmin] = useState(user?.role === Role.SEKRETARIS);
+
+  const mounted = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const isAdmin = mounted && Token.getUser()?.role === Role.SEKRETARIS;
 
   return (
     <main className={`${spaceGrotesk.className} relative min-h-screen bg-black text-white flex flex-col items-center pt-16 pb-28 overflow-hidden`}>
@@ -109,7 +110,7 @@ export default function HomePage() {
         {/* MENU SECTION TITLE */}
         <p className="text-[10px] font-black tracking-[0.2em] text-white/40 px-2 uppercase">Navigation Menu</p>
 
-        {/* ADMIN CONTROLS SECTION - Only visible for admin */}
+        {/* ADMIN CONTROLS */}
         {isAdmin && (
           <section className="flex flex-col gap-4">
             <p className="text-[10px] font-black tracking-[0.2em] text-[#A3FF12] px-2 uppercase">
@@ -134,7 +135,7 @@ export default function HomePage() {
           </section>
         )}
 
-        {/* GENERAL MENU SECTION */}
+        {/* GENERAL MENU */}
         <section className="flex flex-col gap-4">
           {isAdmin && (
             <p className="text-[10px] font-black tracking-[0.2em] text-white/40 px-2 uppercase">

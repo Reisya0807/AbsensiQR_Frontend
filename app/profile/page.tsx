@@ -1,16 +1,11 @@
 'use client';
 
 import BottomNav from '../components/BottomNav';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faUser,
-  faCalendar,
-  faRightFromBracket,
-  faLock,
-  faIdCard,
-  faAt,
+  faUser, faCalendar, faRightFromBracket, faLock, faIdCard, faAt,
 } from '@fortawesome/free-solid-svg-icons';
 import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import { X } from 'lucide-react';
@@ -31,7 +26,7 @@ const spaceGrotesk = Space_Grotesk({
   variable: '--font-space',
 });
 
-export default function ProfilePage() {
+function ProfileContent() {
   const searchParams = useSearchParams();
   const isFirstLogin = searchParams.get('set-password') === 'true';
   const lime = '#A3FF12';
@@ -43,16 +38,16 @@ export default function ProfilePage() {
   const [openSignout, setOpenSignout] = useState(false);
   const [alert, setAlert] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [formChangePass, setFormChangePass] = useState<ChangePassword>({
-    oldPassword: "",
-    newPassword:"",
-    confirmPassword:""
+    oldPassword: '',
+    newPassword: '',
+    confirmPassword: '',
   });
 
-  const handleChangeForm = (e: React.ChangeEvent<HTMLInputElement>)=>{
-    handleObjectChange<ChangePassword>(e,setFormChangePass);
-  }
+  const handleChangeForm = (e: React.ChangeEvent<HTMLInputElement>) => {
+    handleObjectChange<ChangePassword>(e, setFormChangePass);
+  };
 
-  const handleSave = async (e: React.FormEvent<HTMLFormElement>)=>{
+  const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (!formChangePass.oldPassword || !formChangePass.newPassword || !formChangePass.confirmPassword) {
@@ -69,7 +64,7 @@ export default function ProfilePage() {
       const result = await userAPI.changePassword(formChangePass);
       setAlert({ message: 'Password berhasil diubah', type: 'success' });
       setOpenEdit(false);
-      setFormChangePass({ oldPassword: "", newPassword: "", confirmPassword: "" });
+      setFormChangePass({ oldPassword: '', newPassword: '', confirmPassword: '' });
       if (profile?.peserta?.firstLogin && result.success) {
         Token.setFirstLogin(false);
         router.push('/home');
@@ -78,7 +73,7 @@ export default function ProfilePage() {
     } catch (err) {
       setAlert({ message: getErrorMessage(err, 'Gagal mengubah password'), type: 'error' });
     }
-  }
+  };
 
   useEffect(() => {
     if (alert) {
@@ -89,16 +84,12 @@ export default function ProfilePage() {
 
   useEffect(() => {
     userAPI.getProfile()
-      .then((data) => {
-        setProfile(data.data as User);
-      })
+      .then((data) => setProfile(data.data as User))
       .catch(() => {
         Token.logout();
         router.push('/login');
       })
-      .finally(() => {
-        setLoading(false);
-      });
+      .finally(() => setLoading(false));
   }, [router]);
 
   if (loading) return (
@@ -120,25 +111,18 @@ export default function ProfilePage() {
       {alert && <Alert message={alert.message} type={alert.type} />}
 
       <div className="relative z-10 pt-16 flex flex-col items-center">
-        {/* FOTO */}
-      <Image
-        src={'/img/default-avatar.png'}
-        alt={''}
-        width={112}
-        height={112}
-        className="w-28 h-28 rounded-full object-cover border-2"
-        style={{
-          borderColor: lime,
-          boxShadow: '0 0 20px rgba(163,255,18,0.6)',
-        }}
-      />
+        <Image
+          src={'/img/default-avatar.png'}
+          alt={''}
+          width={112}
+          height={112}
+          className="w-28 h-28 rounded-full object-cover border-2"
+          style={{ borderColor: lime, boxShadow: '0 0 20px rgba(163,255,18,0.6)' }}
+        />
 
-        {/* NAMA */}
         <div className="flex items-center gap-2 mt-6 uppercase">
           <FontAwesomeIcon icon={faUser} color={lime} />
-          <h2 className="text-xl font-black" style={{ color: lime }}>
-            {nama}
-          </h2>
+          <h2 className="text-xl font-black" style={{ color: lime }}>{nama}</h2>
         </div>
 
         <button
@@ -150,20 +134,15 @@ export default function ProfilePage() {
         </button>
 
         <div className="mt-8 w-full max-w-md px-4">
-          <div
-            className="p-6 rounded-4xl border-2 backdrop-blur-xl bg-black/40 space-y-4"
-            style={{ borderColor: lime }}
-          >
+          <div className="p-6 rounded-4xl border-2 backdrop-blur-xl bg-black/40 space-y-4" style={{ borderColor: lime }}>
             <div className="flex items-center gap-4 text-xs font-bold">
               <FontAwesomeIcon icon={faAt} color={lime} />
               <p>{profile.username}</p>
             </div>
-
             <div className="flex items-center gap-4 text-xs font-bold">
               <FontAwesomeIcon icon={faIdCard} color={lime} />
               <p>{npm}</p>
             </div>
-
             <div className="flex items-center gap-4 text-xs font-bold">
               <FontAwesomeIcon icon={faCalendar} color={lime} />
               <p>ANGKATAN 2025</p>
@@ -189,44 +168,15 @@ export default function ProfilePage() {
               <X
                 className="absolute top-3 right-3 text-[#A3FF12] cursor-pointer"
                 size={20}
-                onClick={() => {
-                  router.replace('/profile')
-                  setOpenEdit(false)
-                }}
+                onClick={() => { router.replace('/profile'); setOpenEdit(false); }}
               />
-
               <div className="space-y-4 mt-4">
-                <Input
-                  icon={faLock}
-                  placeholder="OLD PASSWORD"
-                  name="oldPassword"
-                  type='password'
-                  value={formChangePass?.oldPassword}
-                  onChange={handleChangeForm}
-                />
-                <Input
-                  icon={faLock}
-                  placeholder="NEW PASSWORD"
-                  name="newPassword"
-                  type='password'
-                  value={formChangePass?.newPassword}
-                  onChange={handleChangeForm}
-                />
-                <Input
-                  icon={faLock}
-                  placeholder="CONFIRM PASSWORD"
-                  name="confirmPassword"
-                  type='password'
-                  value={formChangePass.confirmPassword}
-                  onChange={handleChangeForm}
-                />
+                <Input icon={faLock} placeholder="OLD PASSWORD" name="oldPassword" type="password" value={formChangePass.oldPassword} onChange={handleChangeForm} />
+                <Input icon={faLock} placeholder="NEW PASSWORD" name="newPassword" type="password" value={formChangePass.newPassword} onChange={handleChangeForm} />
+                <Input icon={faLock} placeholder="CONFIRM PASSWORD" name="confirmPassword" type="password" value={formChangePass.confirmPassword} onChange={handleChangeForm} />
               </div>
-
               <div className="flex justify-center mt-6">
-                <button
-                  type='submit'
-                  className="px-8 py-2 rounded-full bg-[#A3FF12] text-black font-black text-xs active:scale-95"
-                >
+                <button type="submit" className="px-8 py-2 rounded-full bg-[#A3FF12] text-black font-black text-xs active:scale-95">
                   SAVE
                 </button>
               </div>
@@ -240,9 +190,7 @@ export default function ProfilePage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
           <div className="p-0.5 rounded-[20px] bg-[#A3FF12] shadow-[0_0_20px_#A3FF12]">
             <div className="bg-black rounded-[18px] px-6 py-6 w-70 text-center">
-              <p className="text-[#A3FF12] font-black text-sm mb-4 uppercase">
-                ARE YOU SURE ?
-              </p>
+              <p className="text-[#A3FF12] font-black text-sm mb-4 uppercase">ARE YOU SURE ?</p>
               <div className="flex gap-3">
                 <button
                   onClick={() => setOpenSignout(false)}
@@ -252,10 +200,7 @@ export default function ProfilePage() {
                   MAYBE LATER
                 </button>
                 <button
-                  onClick={() => {
-                    Token.logout();
-                    router.push('/login');
-                  }}
+                  onClick={() => { Token.logout(); router.push('/login'); }}
                   className="flex-1 py-2 rounded-full bg-[#A3FF12] text-black text-xs font-black"
                 >
                   YEAH
@@ -271,12 +216,25 @@ export default function ProfilePage() {
   );
 }
 
+// ✅ Page utama wrap dengan Suspense
+export default function ProfilePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-black flex items-center justify-center text-white">
+        Loading...
+      </div>
+    }>
+      <ProfileContent />
+    </Suspense>
+  );
+}
+
 interface InputProps {
   icon: IconDefinition;
   placeholder: string;
   type?: string;
   value: string;
-  name:string;
+  name: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 

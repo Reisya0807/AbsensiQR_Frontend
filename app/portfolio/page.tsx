@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, FormEvent, ChangeEvent } from 'react';
+import { useState, useEffect, ChangeEvent } from 'react';
 import BottomNav from '../components/BottomNav';
 import { X, ExternalLink, Plus, Trash2 } from 'lucide-react';
 import { Space_Grotesk } from 'next/font/google';
@@ -8,6 +8,7 @@ import { portfolioAPI } from '@/utils/api/listAPI';
 import { PortfolioCreate, PortfolioData } from '@/schema/portfolio';
 import { handleObjectChange } from '@/utils/form/handleChange';
 import { getErrorMessage } from '@/utils/api/safeRequest';
+import Alert from '../components/Alert';
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
@@ -23,37 +24,40 @@ export default function PortfolioPage() {
   const [form, setForm] = useState<PortfolioCreate>(EMPTY_FORM);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [alert, setAlert] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   const lime = '#A3FF12';
 
   const loadPortfolios = async () => {
     setLoading(true);
-    setError(null);
+    setAlert(null);
     try {
       const res = await portfolioAPI.listMine();
       setItems(res.data ?? []);
     } catch (err) {
-      setError(getErrorMessage(err, 'Gagal memuat portfolio'));
+      setAlert({ message: getErrorMessage(err, 'Gagal memuat portfolio'), type: 'error' });
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadPortfolios();
+    const fetchPortfolios = async () => {
+      await loadPortfolios();
+    };
+    fetchPortfolios();
   }, []);
 
   const handleFormChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     handleObjectChange<PortfolioCreate>(e, setForm);
   };
 
-  const addPortfolio = async (e: FormEvent<HTMLFormElement>) => {
+  const addPortfolio = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!form.title || !form.description) return;
 
     setSubmitting(true);
-    setError(null);
+    setAlert(null);
     const payload: PortfolioCreate = {
       title: form.title,
       description: form.description,
@@ -66,8 +70,9 @@ export default function PortfolioPage() {
       }
       setForm(EMPTY_FORM);
       setIsModalOpen(false);
+      setAlert({ message: 'Portfolio berhasil ditambahkan', type: 'success' });
     } catch (err) {
-      setError(getErrorMessage(err, 'Gagal menyimpan portfolio'));
+      setAlert({ message: getErrorMessage(err, 'Gagal menyimpan portfolio'), type: 'error' });
     } finally {
       setSubmitting(false);
     }
@@ -78,15 +83,25 @@ export default function PortfolioPage() {
     setItems((curr) => curr.filter((it) => it.id !== id));
     try {
       await portfolioAPI.deleteOne(id);
+      setAlert({ message: 'Portfolio berhasil dihapus', type: 'success' });
     } catch (err) {
       setItems(prev);
-      setError(getErrorMessage(err, 'Gagal menghapus portfolio'));
+      setAlert({ message: getErrorMessage(err, 'Gagal menghapus portfolio'), type: 'error' });
     }
   };
+
+  useEffect(() => {
+    if (alert) {
+      const timer = setTimeout(() => setAlert(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [alert]);
 
   return (
     <main className={`${spaceGrotesk.className} relative min-h-screen text-white pb-28 bg-black`}>
       <div className="absolute inset-0 bg-[url('/img/bg-texture.jpeg')] bg-cover bg-center opacity-20" />
+
+      {alert && <Alert message={alert.message} type={alert.type} />}
 
       <div className="relative z-10 pt-16 px-6">
         <div className="flex justify-between items-center mb-10">
@@ -99,12 +114,6 @@ export default function PortfolioPage() {
           </button>
         </div>
 
-        {error && (
-          <div className="mb-6 px-4 py-3 rounded-xl border border-red-400/40 text-red-300 text-xs">
-            {error}
-          </div>
-        )}
-
         {loading ? (
           <div className="text-center py-20 text-white/40 text-xs uppercase tracking-widest italic">
             Loading...
@@ -114,7 +123,7 @@ export default function PortfolioPage() {
             {items.map((item) => (
               <div
                 key={item.id}
-                className="group relative rounded-[2rem] border border-white/10 bg-white/5 overflow-hidden backdrop-blur-md"
+                className="group relative rounded-4xl border border-white/10 bg-white/5 overflow-hidden backdrop-blur-md"
               >
                 <div className="p-5">
                   <h3 className="font-black text-[#A3FF12] italic tracking-tighter uppercase">
@@ -150,7 +159,7 @@ export default function PortfolioPage() {
             ))}
 
             {items.length === 0 && (
-              <div className="text-center py-20 border-2 border-dashed border-white/10 rounded-[2rem]">
+              <div className="text-center py-20 border-2 border-dashed border-white/10 rounded-4xl">
                 <p className="text-white/30 font-bold uppercase tracking-widest text-sm italic">
                   No Portfolio Yet
                 </p>
@@ -162,7 +171,7 @@ export default function PortfolioPage() {
 
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-xl px-6">
-          <div className="w-full max-w-sm bg-[#0a0a0a] border border-[#A3FF12]/30 rounded-[2.5rem] p-8 relative max-h-[90vh] overflow-y-auto custom-scrollbar">
+          <div className="w-full max-w-sm bg-[#0a0a0a] border border-[#A3FF12]/30 rounded-5xl p-8 relative max-h-[90vh] overflow-y-auto custom-scrollbar">
             <button onClick={() => setIsModalOpen(false)} className="absolute top-6 right-6 text-white/40">
               <X size={24} />
             </button>

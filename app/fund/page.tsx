@@ -13,6 +13,54 @@ const spaceGrotesk = Space_Grotesk({
   variable: '--font-space',
 });
 
+interface TransactionCardProps {
+  division: string;
+  date: string;
+  amount: string;
+  items: Array<{ name: string; price: string }>;
+  lime: string;
+  expandedDivision: string | null;
+  setExpandedDivision: (division: string | null) => void;
+}
+
+function TransactionCard({ division, date, amount, items, lime, expandedDivision, setExpandedDivision }: TransactionCardProps) {
+  const isExpanded = expandedDivision === division;
+
+  return (
+    <div
+      className="rounded-3xl border-2 bg-black/20 mb-4 transition-all duration-300"
+      style={{ borderColor: lime }}
+    >
+      <div
+        className="p-5 flex justify-between items-center cursor-pointer"
+        onClick={() => setExpandedDivision(isExpanded ? null : division)}
+      >
+        <div>
+          <p className="text-xs font-black tracking-wider uppercase" style={{ color: lime }}>
+            DIVISI {division}
+          </p>
+          <p className="text-[10px] font-bold text-white/50 tracking-tighter mt-1">{date}</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <p className="text-red-500 font-black text-xl italic tracking-tighter">{amount}</p>
+          <FontAwesomeIcon icon={isExpanded ? faChevronUp : faChevronDown} className="text-xs opacity-50" />
+        </div>
+      </div>
+
+      {isExpanded && (
+        <div className="px-5 pb-5 pt-2 border-t border-white/10 space-y-2 max-h-75 overflow-y-auto custom-scrollbar">
+          {items.map((item:  { name: string; price: string }, idx: number) => (
+            <div key={idx} className="flex justify-between text-[11px] font-medium border-b border-white/5 pb-1">
+              <span className="text-white/70 w-2/3">{item.name}</span>
+              <span style={{ color: lime }} className="w-1/3 text-right">Rp. {item.price}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function FundPage() {
   const lime = '#A3FF12';
   const router = useRouter();
@@ -87,44 +135,6 @@ export default function FundPage() {
     }
   ];
 
-  const TransactionCard = ({ division, date, amount, items }: any) => {
-    const isExpanded = expandedDivision === division;
-
-    return (
-      <div 
-        className="rounded-[1.5rem] border-2 bg-black/20 mb-4 transition-all duration-300" 
-        style={{ borderColor: lime }}
-      >
-        <div 
-          className="p-5 flex justify-between items-center cursor-pointer"
-          onClick={() => setExpandedDivision(isExpanded ? null : division)}
-        >
-          <div>
-            <p className="text-xs font-black tracking-wider uppercase" style={{ color: lime }}>
-              DIVISI {division}
-            </p>
-            <p className="text-[10px] font-bold text-white/50 tracking-tighter mt-1">{date}</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <p className="text-red-500 font-black text-xl italic tracking-tighter">{amount}</p>
-            <FontAwesomeIcon icon={isExpanded ? faChevronUp : faChevronDown} className="text-xs opacity-50" />
-          </div>
-        </div>
-
-        {isExpanded && (
-          <div className="px-5 pb-5 pt-2 border-t border-white/10 space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar">
-            {items.map((item: any, idx: number) => (
-              <div key={idx} className="flex justify-between text-[11px] font-medium border-b border-white/5 pb-1">
-                <span className="text-white/70 w-2/3">{item.name}</span>
-                <span style={{ color: lime }} className="w-1/3 text-right">Rp. {item.price}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  };
-
   return (
     <main className={`${spaceGrotesk.className} relative min-h-screen text-white pb-32 bg-black`}>
       <div 
@@ -146,7 +156,7 @@ export default function FundPage() {
       </div>
 
       <div className="relative z-10 p-6 space-y-8">
-        <div className="p-6 rounded-[2rem] border-2 bg-black/40 backdrop-blur-sm" style={{ borderColor: lime }}>
+        <div className="p-6 rounded-4xl border-2 bg-black/40 backdrop-blur-sm" style={{ borderColor: lime }}>
           <div className="flex items-center gap-5 mb-5">
             <div className="w-16 h-16 rounded-2xl border-2 flex items-center justify-center" style={{ borderColor: lime }}>
               <FontAwesomeIcon icon={faDollarSign} color={lime} className="text-3xl" />
@@ -165,7 +175,16 @@ export default function FundPage() {
         <div className="space-y-4">
           <p style={{ color: lime }} className="font-black text-sm tracking-widest px-1 uppercase">Division Transactions</p>
           {divisionData.map((div) => (
-            <TransactionCard key={div.id} division={div.id} date={div.date} amount={div.total} items={div.items} />
+            <TransactionCard
+              key={div.id}
+              division={div.id}
+              date={div.date}
+              amount={div.total}
+              items={div.items}
+              lime={lime}
+              expandedDivision={expandedDivision}
+              setExpandedDivision={setExpandedDivision}
+            />
           ))}
         </div>
       </div>

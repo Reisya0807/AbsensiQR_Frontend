@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { certificateAPI } from '@/utils/api/listAPI';
 import { CertificateData } from '@/schema/certificate';
 import { getErrorMessage } from '@/utils/api/safeRequest';
+import Alert from '../components/Alert';
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
@@ -18,7 +19,7 @@ export default function CertificatePage() {
 
   const [items, setItems] = useState<CertificateData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [alert, setAlert] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -29,7 +30,7 @@ export default function CertificatePage() {
         setItems(res.data ?? []);
       } catch (err) {
         if (cancelled) return;
-        setError(getErrorMessage(err, 'Gagal memuat sertifikat'));
+        setAlert({ message: getErrorMessage(err, 'Gagal memuat sertifikat'), type: 'error' });
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -39,6 +40,13 @@ export default function CertificatePage() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (alert) {
+      const timer = setTimeout(() => setAlert(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [alert]);
 
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -55,25 +63,21 @@ export default function CertificatePage() {
       />
       <div className="absolute inset-0 bg-black/60" />
 
+      {alert && <Alert message={alert.message} type={alert.type} />}
+
       <div className="relative z-10 w-full flex flex-col items-center pt-16">
         <h1 className="text-2xl font-black mb-6 tracking-wider uppercase" style={{ color: lime }}>
           CERTIFICATE
         </h1>
 
         <div className="w-full max-w-md px-4 space-y-4">
-          {error && (
-            <div className="px-4 py-3 rounded-xl border border-red-400/40 text-red-300 text-xs">
-              {error}
-            </div>
-          )}
-
           {loading && (
             <div className="text-center py-10 text-white/40 text-xs uppercase tracking-widest italic">
               Loading...
             </div>
           )}
 
-          {!loading && items.length === 0 && !error && (
+          {!loading && items.length === 0 && (
             <div className="text-center py-10 border border-dashed border-white/10 rounded-2xl text-white/40 text-xs uppercase tracking-widest italic">
               Belum ada sertifikat
             </div>

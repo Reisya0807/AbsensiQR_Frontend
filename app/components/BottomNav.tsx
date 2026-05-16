@@ -11,52 +11,40 @@ import {
   Image as ImageIcon,
 } from "lucide-react";
 
-const ADMIN_ROUTES = ["/admin", "/generate-qr", "/participants"];
+const lime = "#A3FF12";
 
-function isAdminPath(path: string): boolean {
-  return ADMIN_ROUTES.some((r) => path === r || path.startsWith(`${r}/`));
+type ItemProps = {
+  Icon: React.ComponentType<{ size?: number; strokeWidth?: number; color?: string; style?: React.CSSProperties }>;
+  route: string;
+  currentPath: string;
+};
+
+function Item({ Icon, route, currentPath }: ItemProps) {
+  const router = useRouter();
+
+  const isActive =
+    route === "/home"
+      ? currentPath === "/home" || currentPath === "/fund" || currentPath === "/rundown"
+      : currentPath === route;
+
+  return (
+    <button
+      onClick={() => { if (currentPath !== route) router.push(route); }}
+      className="flex-1 flex justify-center items-center cursor-pointer transition-all duration-200"
+    >
+      <Icon
+        size={20}
+        strokeWidth={2.5}
+        color={isActive ? lime : "white"}
+        style={{ filter: isActive ? `drop-shadow(0 0 6px ${lime})` : "none" }}
+      />
+    </button>
+  );
 }
 
 export default function BottomNav() {
   const router = useRouter();
   const path = usePathname();
-  const lime = "#A3FF12";
-
-  const isAdminRole = isAdminPath(path);
-  const homeRoute = isAdminRole ? "/admin" : "/home";
-
-  type ItemProps = {
-    Icon: React.ComponentType<{ size?: number; strokeWidth?: number; color?: string; style?: React.CSSProperties }>;
-    route: string;
-  };
-
-  const Item = ({ Icon, route }: ItemProps) => {
-    const isActive =
-      route === "/admin"
-        ? isAdminPath(path)
-        : route === "/home"
-        ? path === "/home" || path === "/fund" || path === "/rundown"
-        : path === route;
-
-    return (
-      <button
-        onClick={() => {
-          if (path !== route) router.push(route);
-        }}
-        className="flex-1 flex justify-center items-center cursor-pointer transition-all duration-200"
-      >
-        <Icon
-          size={20}
-          strokeWidth={2.5}
-          color={isActive ? lime : "white"}
-          style={{
-            filter: isActive ? `drop-shadow(0 0 6px ${lime})` : "none",
-          }}
-        />
-      </button>
-    );
-  };
-
   const isScanActive = path === "/scan";
 
   return (
@@ -68,13 +56,13 @@ export default function BottomNav() {
           boxShadow: "0 0 20px rgba(163,255,18,0.3)",
         }}
       >
-        <Item Icon={Home} route={homeRoute} />
-        <Item Icon={FileText} route="/certificate" />
-        <Item Icon={Info} route="/aboutus" />
+        <Item Icon={Home} route="/home" currentPath={path} />
+        <Item Icon={FileText} route="/certificate" currentPath={path} />
+        <Item Icon={Info} route="/aboutus" currentPath={path} />
 
         <div
           onClick={() => router.push("/scan")}
-          className="w-14 h-14 mx-1 rounded-full flex items-center justify-center border cursor-pointer flex-shrink-0 transition-all active:scale-90"
+          className="w-14 h-14 mx-1 rounded-full flex items-center justify-center border cursor-pointer shrink-0 transition-all active:scale-90"
           style={{
             borderColor: lime,
             boxShadow: isScanActive
@@ -86,15 +74,13 @@ export default function BottomNav() {
             size={26}
             strokeWidth={2.5}
             color={isScanActive ? lime : "white"}
-            style={{
-              filter: isScanActive ? `drop-shadow(0 0 8px ${lime})` : "none",
-            }}
+            style={{ filter: isScanActive ? `drop-shadow(0 0 8px ${lime})` : "none" }}
           />
         </div>
 
-        <Item Icon={ImageIcon} route="/documentation" />
-        <Item Icon={Briefcase} route="/portfolio" />
-        <Item Icon={User} route="/profile" />
+        <Item Icon={ImageIcon} route="/documentation" currentPath={path} />
+        <Item Icon={Briefcase} route="/portfolio" currentPath={path} />
+        <Item Icon={User} route="/profile" currentPath={path} />
       </div>
     </div>
   );

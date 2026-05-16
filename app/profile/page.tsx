@@ -6,11 +6,11 @@ import { useRouter } from 'next/navigation';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faUser,
-  faEnvelope,
-  faPhone,
   faCalendar,
   faRightFromBracket,
   faLock,
+  faIdCard,
+  faAt,
 } from '@fortawesome/free-solid-svg-icons';
 import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import { X } from 'lucide-react';
@@ -21,6 +21,8 @@ import { userAPI } from '@/utils/api/listAPI';
 import Image from 'next/image';
 import { ChangePassword } from '@/schema/request';
 import { handleObjectChange } from '@/utils/form/handleChange';
+import { getErrorMessage } from '@/utils/api/safeRequest';
+import Alert from '../components/Alert';
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
@@ -36,6 +38,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [openEdit, setOpenEdit] = useState(false);
   const [openSignout, setOpenSignout] = useState(false);
+  const [alert, setAlert] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [formChangePass, setFormChangePass] = useState<ChangePassword>({
     oldPassword: "",
     newPassword:"",
@@ -45,12 +48,36 @@ export default function ProfilePage() {
   const handleChangeForm = (e: React.ChangeEvent<HTMLInputElement>)=>{
     handleObjectChange<ChangePassword>(e,setFormChangePass);
   }
-  const handleSave = (e: React.SubmitEvent)=>{
+
+  const handleSave = async (e: React.FormEvent<HTMLFormElement>)=>{
     e.preventDefault();
-    userAPI.changePassword(formChangePass).catch(e=>{
-      
-    })
+
+    if (!formChangePass.oldPassword || !formChangePass.newPassword || !formChangePass.confirmPassword) {
+      setAlert({ message: 'Harap isi semua field!', type: 'error' });
+      return;
+    }
+
+    if (formChangePass.newPassword !== formChangePass.confirmPassword) {
+      setAlert({ message: 'Password baru dan konfirmasi tidak cocok!', type: 'error' });
+      return;
+    }
+
+    try {
+      await userAPI.changePassword(formChangePass);
+      setAlert({ message: 'Password berhasil diubah', type: 'success' });
+      setOpenEdit(false);
+      setFormChangePass({ oldPassword: "", newPassword: "", confirmPassword: "" });
+    } catch (err) {
+      setAlert({ message: getErrorMessage(err, 'Gagal mengubah password'), type: 'error' });
+    }
   }
+
+  useEffect(() => {
+    if (alert) {
+      const timer = setTimeout(() => setAlert(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [alert]);
 
   useEffect(() => {
     userAPI.getProfile()
@@ -81,6 +108,8 @@ export default function ProfilePage() {
     <main className={`${spaceGrotesk.className} relative min-h-screen text-white pb-28`}>
       <div className="absolute inset-0 bg-[url('/img/bg-texture.jpeg')] bg-cover bg-center" />
       <div className="absolute inset-0 bg-black/60" />
+
+      {alert && <Alert message={alert.message} type={alert.type} />}
 
       <div className="relative z-10 pt-16 flex flex-col items-center">
         {/* FOTO */}
@@ -118,12 +147,12 @@ export default function ProfilePage() {
             style={{ borderColor: lime }}
           >
             <div className="flex items-center gap-4 text-xs font-bold">
-              <FontAwesomeIcon icon={faEnvelope} color={lime} />
+              <FontAwesomeIcon icon={faAt} color={lime} />
               <p>{profile.username}</p>
             </div>
 
             <div className="flex items-center gap-4 text-xs font-bold">
-              <FontAwesomeIcon icon={faPhone} color={lime} />
+              <FontAwesomeIcon icon={faIdCard} color={lime} />
               <p>{npm}</p>
             </div>
 
@@ -198,8 +227,8 @@ export default function ProfilePage() {
       {/* POPUP LOGOUT */}
       {openSignout && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-          <div className="p-[2px] rounded-[20px] bg-[#A3FF12] shadow-[0_0_20px_#A3FF12]">
-            <div className="bg-black rounded-[18px] px-6 py-6 w-[280px] text-center">
+          <div className="p-0.5 rounded-[20px] bg-[#A3FF12] shadow-[0_0_20px_#A3FF12]">
+            <div className="bg-black rounded-[18px] px-6 py-6 w-70 text-center">
               <p className="text-[#A3FF12] font-black text-sm mb-4 uppercase">
                 ARE YOU SURE ?
               </p>

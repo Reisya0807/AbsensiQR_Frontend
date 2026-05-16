@@ -9,6 +9,7 @@ import { useState, useEffect } from 'react';
 import { rundownAPI } from '@/utils/api/listAPI';
 import { RundownData } from '@/schema/rundown';
 import { getErrorMessage } from '@/utils/api/safeRequest';
+import Alert from '../components/Alert';
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
@@ -24,7 +25,7 @@ export default function RundownPage() {
 
   const [items, setItems] = useState<RundownData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [alert, setAlert] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
@@ -41,7 +42,7 @@ export default function RundownPage() {
         setItems(res.data ?? []);
       } catch (err) {
         if (cancelled) return;
-        setError(getErrorMessage(err, 'Gagal memuat rundown'));
+        setAlert({ message: getErrorMessage(err, 'Gagal memuat rundown'), type: 'error' });
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -49,6 +50,13 @@ export default function RundownPage() {
     load();
     return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => {
+    if (alert) {
+      const timer = setTimeout(() => setAlert(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [alert]);
 
   const checkStatus = (item: RundownData): RundownStatus => {
     const now = currentTime.getTime();
@@ -91,6 +99,8 @@ export default function RundownPage() {
       />
       <div className="absolute inset-0 bg-black/40 z-0" />
 
+      {alert && <Alert message={alert.message} type={alert.type} />}
+
       <div className="relative z-10 flex items-center gap-4 px-6 py-8 border-b border-white/10">
         <button
           onClick={() => router.back()}
@@ -105,12 +115,6 @@ export default function RundownPage() {
       </div>
 
       <div className="relative z-10 px-6 pt-6">
-        {error && (
-          <div className="mb-6 px-4 py-3 rounded-xl border border-red-400/40 text-red-300 text-xs">
-            {error}
-          </div>
-        )}
-
         {loading ? (
           <div className="text-center py-20 opacity-40 uppercase font-black tracking-widest italic">
             Loading...
@@ -201,7 +205,7 @@ export default function RundownPage() {
           })
         )}
 
-        {!loading && filteredRundown.length === 0 && !error && (
+        {!loading && filteredRundown.length === 0 && (
           <div className="text-center py-20 opacity-40 uppercase font-black tracking-widest italic">
             No Rundown Yet
           </div>

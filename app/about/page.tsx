@@ -5,6 +5,7 @@ import BottomNav from "../components/BottomNav";
 import { motion, AnimatePresence } from "framer-motion";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChevronDown } from "@fortawesome/free-solid-svg-icons";
+import Image from 'next/image';
 import { Space_Grotesk } from 'next/font/google';
 
 const spaceGrotesk = Space_Grotesk({
@@ -70,10 +71,12 @@ export default function AboutPage() {
           </div>
 
           {/* IMAGE */}
-          <img
+          <Image
             src="/img/vidya.png"
-            alt="Vidya"
-            className="rounded-xl mb-4"
+            alt="Vidya Sambandha Event"
+            width={500}
+            height={300}
+            className="rounded-xl mb-4 w-full h-auto"
           />
 
           {/* TEXT UTAMA */}

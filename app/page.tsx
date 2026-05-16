@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { Space_Grotesk } from 'next/font/google';
 
 const spaceGrotesk = Space_Grotesk({
@@ -117,7 +118,7 @@ export default function LandingPage() {
 
           {/* LOGO */}
           <motion.div initial={{ y: 60, opacity: 0 }} animate={phase >= 5 ? { y: 0, opacity: 1 } : { y: 60, opacity: 0 }} transition={{ duration: 1, ease: 'easeOut' }} className="mb-2">
-            <img src="/img/logo.png" className="w-32 h-32 drop-shadow-[0_0_20px_rgba(180,227,75,0.4)]" alt="Logo" />
+            <Image src="/img/logo.png" alt="Logo" width={128} height={128} className="w-32 h-32 drop-shadow-[0_0_20px_rgba(180,227,75,0.4)]" />
           </motion.div>
         </motion.div>
       </motion.div>

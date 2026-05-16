@@ -1,14 +1,16 @@
 'use client';
 
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { Space_Grotesk } from 'next/font/google';
 import { Login } from '@/schema/request';
 import { handleObjectChange } from '@/utils/form/handleChange';
 import { authAPI } from '@/utils/api/listAPI';
 import { getErrorMessage } from '@/utils/api/safeRequest';
-import Token, { homeRouteForRole } from '@/utils/auth/token';
+import Token from '@/utils/auth/token';
+import Alert from '../components/Alert';
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
@@ -30,7 +32,7 @@ export default function LoginPage() {
 
   const green = '#A3FF12';
 
-  const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (!loginForm.username || !loginForm.password) {
@@ -45,7 +47,7 @@ export default function LoginPage() {
         return;
       }
       Token.login(res.data.token, res.data.user);
-      router.replace(homeRouteForRole(res.data.user.role));
+      router.replace('/home');
     } catch (err) {
       setAlert({ message: getErrorMessage(err, 'Login failed. Please try again.'), type: 'error' });
     } finally {
@@ -80,32 +82,7 @@ export default function LoginPage() {
       />
 
       {/* Alert */}
-      <AnimatePresence>
-        {alert && (
-          <motion.div
-            initial={{ y: -80, opacity: 0 }}
-            animate={{ y: 20, opacity: 1 }}
-            exit={{ y: -80, opacity: 0 }}
-            className="absolute top-0 z-50"
-          >
-            <div
-              className={`px-6 py-4 rounded-2xl backdrop-blur-xl border text-white shadow-lg ${
-                alert.type === 'success'
-                  ? 'border-[#A3FF12] bg-[#A3FF12]/10'
-                  : 'border-red-400 bg-red-400/10'
-              }`}
-              style={{
-                boxShadow:
-                  alert.type === 'success'
-                    ? '0 0 15px #A3FF12'
-                    : '0 0 15px rgba(255,0,0,0.5)',
-              }}
-            >
-              {alert.message}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {alert && <Alert message={alert.message} type={alert.type} />}
 
       {/* Card */}
       <motion.div
@@ -123,7 +100,7 @@ export default function LoginPage() {
 
         {/* Logo */}
         <div className="flex justify-center mb-6">
-          <img src="/img/logo.png" className="w-24" alt="Logo" />
+          <Image src="/img/logo.png" alt="Logo" width={96} height={96} className="w-24 h-24" />
         </div>
 
         {/* Form */}

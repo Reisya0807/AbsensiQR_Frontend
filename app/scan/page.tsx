@@ -77,7 +77,7 @@ export default function ScanPage() {
       {status !== 'idle' && (
         <div className="absolute top-10 z-50 animate-bounce">
           <div
-            className="w-[300px] p-4 rounded-2xl flex flex-col items-center border-[1.5px] bg-black/90 backdrop-blur-md"
+            className="w-75 p-4 rounded-2xl flex flex-col items-center border-[1.5px] bg-black/90 backdrop-blur-md"
             style={{ borderColor: lime }}
           >
             <h3 className="font-bold text-sm tracking-widest mb-1" style={{ color: lime }}>
@@ -110,7 +110,7 @@ export default function ScanPage() {
         </h2>
         <p className="text-[11px] text-white/50 mb-8">Position the QR code within the frame</p>
 
-        <div className="relative w-[220px] h-[220px] mx-auto mb-10 overflow-hidden bg-zinc-900 border border-white/10">
+        <div className="relative w-55 h-55 mx-auto mb-10 overflow-hidden bg-zinc-900 border border-white/10">
           {isScanning ? (
             <Scanner
               onScan={handleScan}
@@ -127,7 +127,7 @@ export default function ScanPage() {
           )}
 
           {isScanning && (
-            <div className="absolute left-0 w-full h-[2px] bg-[#A3FF12] shadow-[0_0_15px_#A3FF12] animate-scan z-20" />
+            <div className="absolute left-0 w-full h-0.5 bg-[#A3FF12] shadow-[0_0_15px_#A3FF12] animate-scan z-20" />
           )}
 
           <Corner pos="tl" /> <Corner pos="tr" />

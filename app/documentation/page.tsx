@@ -5,17 +5,22 @@ import BottomNav from '../components/BottomNav';
 import { useRouter } from 'next/navigation';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowLeft, faPlayCircle, faCamera, faVideo } from '@fortawesome/free-solid-svg-icons';
+import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
   weight: ['300', '400', '700'],
 });
 
-export default function DocumentationPage() {
-  const lime = '#A3FF12';
-  const router = useRouter();
+interface DocCardProps {
+  title: string;
+  type: string;
+  icon: IconDefinition;
+  lime: string;
+}
 
-  const DocCard = ({ title, type, icon }: any) => (
+function DocCard({ title, type, icon, lime }: DocCardProps) {
+  return (
     <div className="group relative overflow-hidden rounded-2xl border-2 bg-black/40 backdrop-blur-sm p-4 transition-all active:scale-95" style={{ borderColor: lime }}>
       <div className="aspect-video w-full rounded-xl bg-white/10 mb-4 flex items-center justify-center border border-white/5 overflow-hidden">
         <FontAwesomeIcon icon={icon} className="text-4xl opacity-20 group-hover:opacity-100 transition-opacity" style={{ color: lime }} />
@@ -29,6 +34,11 @@ export default function DocumentationPage() {
       </div>
     </div>
   );
+}
+
+export default function DocumentationPage() {
+  const lime = '#A3FF12';
+  const router = useRouter();
 
   return (
     <main className={`${spaceGrotesk.className} relative min-h-screen text-white pb-32 overflow-hidden`}>
@@ -47,9 +57,9 @@ export default function DocumentationPage() {
       {/* CONTENT */}
       <div className="relative z-10 p-6 space-y-6">
         <div className="grid gap-4">
-          <DocCard title="LIVE STREAMING" type="Live" icon={faPlayCircle} />
-          <DocCard title="VIDEO DOCUMENTER" type="Doc" icon={faVideo} />
-          <DocCard title="AFTER MOVIE" type="Cinematic" icon={faVideo} />
+          <DocCard title="LIVE STREAMING" type="Live" icon={faPlayCircle} lime={lime} />
+          <DocCard title="VIDEO DOCUMENTER" type="Doc" icon={faVideo} lime={lime} />
+          <DocCard title="AFTER MOVIE" type="Cinematic" icon={faVideo} lime={lime} />
         </div>
 
         <div className="mt-8">

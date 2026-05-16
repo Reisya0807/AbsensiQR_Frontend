@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { qrAPI } from '@/utils/api/listAPI';
 import { TokenData } from '@/schema/response';
 import { getErrorMessage, APIError } from '@/utils/api/safeRequest';
+import Alert from '../components/Alert';
 
 const RETRY_DELAY_SECONDS = 5;
 
@@ -18,7 +19,7 @@ export default function GenerateQR() {
   const [tokenData, setTokenData] = useState<TokenData | null>(null);
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [zoom, setZoom] = useState(0.85);
-  const [error, setError] = useState<string | null>(null);
+  const [alert, setAlert] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const inFlightRef = useRef(false);
 
   // Backend enforces sekretaris-only. On 401/403 we redirect, otherwise back off
@@ -27,7 +28,7 @@ export default function GenerateQR() {
     if (inFlightRef.current) return;
     inFlightRef.current = true;
     try {
-      setError(null);
+      setAlert(null);
       const res = await qrAPI.generate();
       if (!res.data) throw new Error(res.message || 'Gagal generate QR');
       setTokenData(res.data);
@@ -40,12 +41,19 @@ export default function GenerateQR() {
         router.replace('/home');
         return;
       }
-      setError(getErrorMessage(err, 'Gagal generate QR'));
+      setAlert({ message: getErrorMessage(err, 'Gagal generate QR'), type: 'error' });
       setTimeLeft(RETRY_DELAY_SECONDS);
     } finally {
       inFlightRef.current = false;
     }
   }, [router]);
+
+  useEffect(() => {
+    if (alert) {
+      const timer = setTimeout(() => setAlert(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [alert]);
 
   useEffect(() => {
     fetchToken();
@@ -72,6 +80,8 @@ export default function GenerateQR() {
         }}
       />
 
+      {alert && <Alert message={alert.message} type={alert.type} />}
+
       <div className="relative z-10 w-full max-w-4xl h-full flex flex-col items-center">
         <div className="w-full flex justify-between items-start mb-2">
           <button
@@ -91,17 +101,11 @@ export default function GenerateQR() {
           <div className="w-10" />
         </div>
 
-        {error && (
-          <div className="mt-4 px-4 py-2 rounded-xl border border-red-400 text-red-300 text-xs">
-            {error}
-          </div>
-        )}
-
         <div className="flex-1 flex flex-col items-center justify-center -mt-4">
           <motion.div
             animate={{ scale: zoom }}
             transition={{ type: 'spring', stiffness: 260, damping: 25 }}
-            className="relative bg-white p-4 md:p-8 rounded-[3rem] shadow-2xl"
+            className="relative bg-white p-4 md:p-8 rounded-6xl shadow-2xl"
             style={{
               width: 'min(70vh, 85vw)',
               height: 'min(70vh, 85vw)',
@@ -138,7 +142,7 @@ export default function GenerateQR() {
         </div>
 
         <div className="mt-auto pt-4 pb-2 w-full flex justify-center">
-          <div className="bg-zinc-900/60 backdrop-blur-xl border border-white/5 p-3 px-6 rounded-[2rem] flex items-center gap-6">
+          <div className="bg-zinc-900/60 backdrop-blur-xl border border-white/5 p-3 px-6 rounded-4xl flex items-center gap-6">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setZoom((z) => Math.max(0.4, z - 0.05))}

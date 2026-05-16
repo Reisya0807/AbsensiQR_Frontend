@@ -11,6 +11,7 @@ import {
 import { pesertaAPI, attendanceAPI } from '@/utils/api/listAPI';
 import { PesertaListItem } from '@/schema/user';
 import { getErrorMessage, APIError } from '@/utils/api/safeRequest';
+import Alert from '../components/Alert';
 
 interface Row {
   id: string;        // userId
@@ -45,7 +46,7 @@ export default function ParticipantPage() {
 
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [alert, setAlert] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -68,13 +69,20 @@ export default function ParticipantPage() {
           router.replace('/home');
           return;
         }
-        setError(getErrorMessage(err, 'Gagal memuat data peserta'));
+        setAlert({ message: getErrorMessage(err, 'Gagal memuat data peserta'), type: 'error' });
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
     return () => { cancelled = true; };
   }, [router]);
+
+  useEffect(() => {
+    if (alert) {
+      const timer = setTimeout(() => setAlert(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [alert]);
 
   const filtered = useMemo(() => {
     const q = searchTerm.toLowerCase();
@@ -100,8 +108,9 @@ export default function ParticipantPage() {
         ),
       );
       setSelectedUser((prev) => (prev && prev.id === row.id ? { ...prev, hadir: true } : prev));
+      setAlert({ message: 'Absensi berhasil dicatat', type: 'success' });
     } catch (err) {
-      setError(getErrorMessage(err, 'Gagal mencatat absensi'));
+      setAlert({ message: getErrorMessage(err, 'Gagal mencatat absensi'), type: 'error' });
     } finally {
       setUpdatingId(null);
     }
@@ -117,6 +126,8 @@ export default function ParticipantPage() {
           opacity: 0.5,
         }}
       />
+
+      {alert && <Alert message={alert.message} type={alert.type} />}
 
       <div className="relative z-10">
         <div className="relative mb-8">
@@ -136,12 +147,6 @@ export default function ParticipantPage() {
           />
         </div>
 
-        {error && (
-          <div className="mb-6 px-4 py-3 rounded-xl border border-red-400/40 text-red-300 text-xs">
-            {error}
-          </div>
-        )}
-
         {loading ? (
           <div className="text-center py-20 text-white/40 text-xs uppercase tracking-widest italic">
             Loading...
@@ -160,10 +165,9 @@ export default function ParticipantPage() {
                 >
                   <div className="flex items-center gap-4">
                     <div
-                      className="w-14 h-14 rounded-xl border-2 overflow-hidden bg-zinc-900"
+                      className="w-14 h-14 rounded-xl border-2 overflow-hidden bg-zinc-900 relative"
                       style={{ borderColor: lime }}
                     >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={user.img} alt={`avatar of ${user.name}`} className="w-full h-full object-cover" />
                     </div>
                     <div>
@@ -239,10 +243,9 @@ export default function ParticipantPage() {
 
               <div className="flex flex-col items-center mb-10">
                 <div
-                  className="w-32 h-32 rounded-full border-4 overflow-hidden bg-black mb-4"
+                  className="w-32 h-32 rounded-full border-4 overflow-hidden bg-black mb-4 relative"
                   style={{ borderColor: lime, boxShadow: `0 0 20px ${lime}` }}
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={selectedUser.img} alt={`avatar of ${selectedUser.name}`} className="w-full h-full object-cover" />
                 </div>
                 <h2 className="font-black text-xl tracking-widest text-center" style={{ color: lime }}>

@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Scanner, IDetectedBarcode } from '@yudiel/react-qr-scanner';
+import { useState, useEffect, useRef } from 'react';
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import BottomNav from '../components/BottomNav';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCamera } from '@fortawesome/free-solid-svg-icons';
+import { faCamera, faRotate } from '@fortawesome/free-solid-svg-icons';
 import { Space_Grotesk } from 'next/font/google';
 import { attendanceAPI } from '@/utils/api/listAPI';
 import { ScanAttandance } from '@/schema/request';
@@ -23,41 +23,75 @@ export default function ScanPage() {
   const [isScanning, setIsScanning] = useState(false);
   const [status, setStatus] = useState<ScanStatus>('idle');
   const [message, setMessage] = useState<string>('');
+  const [usingFront, setUsingFront] = useState(false);
+  const scannerRef = useRef<Html5Qrcode | null>(null);
+  const SCANNER_ID = 'qr-scanner-container';
 
   const extractToken = (raw: string): string => {
     try {
       const parsed = JSON.parse(raw) as { token?: string };
       if (parsed && typeof parsed.token === 'string') return parsed.token;
-    } catch {
-      /* not json, fall through */
-    }
+    } catch { /* not json */ }
     return raw;
   };
 
-  const handleScan = async (results: IDetectedBarcode[]) => {
-    if (!results || results.length === 0) return;
-    const raw = results[0].rawValue;
-    setIsScanning(false);
-    setStatus('submitting');
-    setMessage('Memvalidasi QR...');
+  const startScanner = async (front: boolean) => {
+    const scanner = new Html5Qrcode(SCANNER_ID, {
+      formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+      verbose: false,
+    });
+    scannerRef.current = scanner;
 
-    const payload: ScanAttandance = { token: extractToken(raw) };
-    try {
-      const res = await attendanceAPI.scan(payload);
-      setStatus('success');
-      setMessage(res.message || 'Absensi berhasil');
-    } catch (err) {
-      setStatus('failed');
-      setMessage(getErrorMessage(err, 'QR tidak valid'));
+    await scanner.start(
+      { facingMode: front ? 'user' : 'environment' },
+      { fps: 10, qrbox: { width: 180, height: 180 } },
+      async (decodedText) => {
+        await scanner.stop();
+        setIsScanning(false);
+        setStatus('submitting');
+        setMessage('Memvalidasi QR...');
+
+        const payload: ScanAttandance = { token: extractToken(decodedText) };
+        try {
+          const res = await attendanceAPI.scan(payload);
+          setStatus('success');
+          setMessage(res.message || 'Absensi berhasil');
+        } catch (err) {
+          setStatus('failed');
+          setMessage(getErrorMessage(err, 'QR tidak valid'));
+        }
+      },
+      () => { /* frame error, abaikan */ }
+    );
+  };
+
+  const stopScanner = async () => {
+    if (scannerRef.current) {
+      try { await scannerRef.current.stop(); } catch { /* ignore */ }
+      scannerRef.current = null;
     }
   };
 
-  const handleError = (error: unknown) => {
-    console.error(error);
-    setStatus('failed');
-    setMessage('Gagal mengakses kamera');
-    setIsScanning(false);
+  const handleToggleScan = async () => {
+    if (isScanning) {
+      await stopScanner();
+      setIsScanning(false);
+    } else {
+      setIsScanning(true);
+      await startScanner(usingFront);
+    }
   };
+
+  const handleToggleCamera = async () => {
+    await stopScanner();
+    const next = !usingFront;
+    setUsingFront(next);
+    await startScanner(next);
+  };
+
+  useEffect(() => {
+    return () => { stopScanner(); };
+  }, []);
 
   useEffect(() => {
     if (status === 'idle' || status === 'submitting') return;
@@ -81,11 +115,7 @@ export default function ScanPage() {
             style={{ borderColor: lime }}
           >
             <h3 className="font-bold text-sm tracking-widest mb-1" style={{ color: lime }}>
-              {status === 'success'
-                ? 'SCAN SUCCESS'
-                : status === 'submitting'
-                ? 'PROCESSING'
-                : 'SCAN FAILED'}
+              {status === 'success' ? 'SCAN SUCCESS' : status === 'submitting' ? 'PROCESSING' : 'SCAN FAILED'}
             </h3>
             <p className="text-[10px] uppercase opacity-80 text-center">{message}</p>
           </div>
@@ -105,37 +135,40 @@ export default function ScanPage() {
           </div>
         </div>
 
-        <h2 className="text-xl font-bold mb-1" style={{ color: lime }}>
-          Scan Presence Code
-        </h2>
+        <h2 className="text-xl font-bold mb-1" style={{ color: lime }}>Scan Presence Code</h2>
         <p className="text-[11px] text-white/50 mb-8">Position the QR code within the frame</p>
 
-        <div className="relative w-55 h-55 mx-auto mb-10 overflow-hidden bg-zinc-900 border border-white/10">
-          {isScanning ? (
-            <Scanner
-              onScan={handleScan}
-              onError={handleError}
-              allowMultiple={false}
-              scanDelay={2000}
-              components={{ finder: false }}
-              styles={{ container: { width: '100%', height: '100%' } }}
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-zinc-900">
+        {/* Container wajib ada di DOM sebelum scanner start */}
+        <div className="relative w-55 h-55 mx-auto mb-4 overflow-hidden bg-zinc-900 border border-white/10">
+          <div id={SCANNER_ID} className="w-full h-full" />
+
+          {!isScanning && (
+            <div className="absolute inset-0 flex items-center justify-center bg-zinc-900">
               <FontAwesomeIcon icon={faCamera} className="text-3xl opacity-10" />
             </div>
           )}
 
           {isScanning && (
-            <div className="absolute left-0 w-full h-0.5 bg-[#A3FF12] shadow-[0_0_15px_#A3FF12] animate-scan z-20" />
+            <div className="absolute left-0 w-full h-0.5 bg-[#A3FF12] shadow-[0_0_15px_#A3FF12] animate-scan z-20 pointer-events-none" />
           )}
 
           <Corner pos="tl" /> <Corner pos="tr" />
           <Corner pos="bl" /> <Corner pos="br" />
         </div>
 
+        {isScanning && (
+          <button
+            onClick={handleToggleCamera}
+            className="mb-4 flex items-center gap-2 mx-auto text-[10px] tracking-widest font-bold py-1.5 px-4 rounded-full border transition-all"
+            style={{ borderColor: lime, color: lime }}
+          >
+            <FontAwesomeIcon icon={faRotate} />
+            {usingFront ? 'BACK CAM' : 'FRONT CAM'}
+          </button>
+        )}
+
         <button
-          onClick={() => setIsScanning((v) => !v)}
+          onClick={handleToggleScan}
           disabled={status === 'submitting'}
           className="w-full py-3.5 rounded-full font-black text-[10px] tracking-widest transition-all disabled:opacity-50"
           style={{
@@ -157,9 +190,7 @@ export default function ScanPage() {
           50% { opacity: 1; }
           100% { top: 100%; opacity: 0; }
         }
-        .animate-scan {
-          animation: scan 2s linear infinite;
-        }
+        .animate-scan { animation: scan 2s linear infinite; }
       `}</style>
     </main>
   );

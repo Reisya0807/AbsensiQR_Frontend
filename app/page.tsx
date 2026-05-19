@@ -118,7 +118,7 @@ export default function LandingPage() {
 
           {/* LOGO */}
           <motion.div initial={{ y: 60, opacity: 0 }} animate={phase >= 5 ? { y: 0, opacity: 1 } : { y: 60, opacity: 0 }} transition={{ duration: 1, ease: 'easeOut' }} className="mb-2">
-            <Image src="/img/logo.png" alt="Logo" width={128} height={128} className="w-32 h-32 drop-shadow-[0_0_20px_rgba(180,227,75,0.4)]" />
+            <Image src="/img/logo.png" alt="Logo" width={128} height={128} className="w-32 h-32 drop-shadow-[0_0_20px_rgba(180,227,75,0.4)]" priority />
           </motion.div>
         </motion.div>
       </motion.div>

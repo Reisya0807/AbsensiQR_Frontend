@@ -81,8 +81,7 @@ export default function AboutPage() {
 
           {/* TEXT UTAMA */}
           <p className="text-xs text-white/70 leading-relaxed">
-            Vidya Sambandha adalah acara untuk mempererat silaturahmi
-            dan membangun kebersamaan antar mahasiswa angkatan 2025.
+            Vidya Sambandha hadir sebagai wadah kolaborasi mahasiswa angkatan 2025. Mengusung filosofi &apos;keterhubungan ilmu pengetahuan&apos;, acara ini menjadi ruang menyatukan ide, logika, dan kreativitas untuk membangun karya bersama.
           </p>
 
           {/* EXPAND */}
@@ -96,11 +95,13 @@ export default function AboutPage() {
                 className="overflow-hidden"
               >
                 <p className="text-xs text-white/70 mt-3 leading-relaxed">
-                  Acara ini juga menjadi wadah kolaborasi, inovasi,
-                  serta pengembangan potensi mahasiswa melalui berbagai
-                  kegiatan seperti seminar, workshop, dan hiburan.
-                  Dengan semangat kebersamaan, diharapkan tercipta
-                  hubungan yang solid dan berkelanjutan antar mahasiswa.
+                  Di era yang serba cepat, inovasi lahir dari kolaborasi. Vidya Sambandha (Sanskerta: 
+                  Keterhubungan Ilmu) hadir untuk menjembatani ide dan kreativitas antar mahasiswa.
+                </p>
+                <p className="text-xs text-white/70 mt-3 leading-relaxed">
+                  Melalui tema <strong>&quot;Menjalin Silaturahmi, Menyatukan Logika, Membangun Karya&quot;</strong>, 
+                  kami memanfaatkan potensi dan sumber daya di lingkungan Unpas untuk tumbuh dan 
+                  berkembang bersama.
                 </p>
               </motion.div>
             )}

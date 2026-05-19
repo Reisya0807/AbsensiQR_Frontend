@@ -19,6 +19,7 @@ import { handleObjectChange } from '@/utils/form/handleChange';
 import { getErrorMessage } from '@/utils/api/safeRequest';
 import Alert from '../components/Alert';
 import { useSearchParams } from 'next/navigation';
+import { panitiaData } from '@/vidya/listPanitia';
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
@@ -112,7 +113,7 @@ function ProfileContent() {
 
       <div className="relative z-10 pt-16 flex flex-col items-center">
         <Image
-          src={'/img/default-avatar.png'}
+          src={panitiaData[npm]?.foto || '/img/default-pfp.jpeg'}
           alt={''}
           width={112}
           height={112}

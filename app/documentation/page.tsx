@@ -4,8 +4,13 @@ import { Space_Grotesk } from 'next/font/google';
 import BottomNav from '../components/BottomNav';
 import { useRouter } from 'next/navigation';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faArrowLeft, faPlayCircle, faCamera, faVideo } from '@fortawesome/free-solid-svg-icons';
+import { faArrowLeft, faPlayCircle, faVideo } from '@fortawesome/free-solid-svg-icons';
 import { IconDefinition } from '@fortawesome/fontawesome-svg-core';
+import dok1 from '@/public/img/dokumentasi/1.jpeg';
+import dok2 from '@/public/img/dokumentasi/2.jpeg';
+import dok3 from '@/public/img/dokumentasi/3.png';
+import dok4 from '@/public/img/dokumentasi/4.jpeg';
+import Image from 'next/image';
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
@@ -17,11 +22,17 @@ interface DocCardProps {
   type: string;
   icon: IconDefinition;
   lime: string;
+  comingSoon?: boolean;
 }
 
-function DocCard({ title, type, icon, lime }: DocCardProps) {
+function DocCard({ title, type, icon, lime, comingSoon=true }: DocCardProps) {
   return (
     <div className="group relative overflow-hidden rounded-2xl border-2 bg-black/40 backdrop-blur-sm p-4 transition-all active:scale-95" style={{ borderColor: lime }}>
+      {comingSoon && (<div className="absolute top-4 right-4 z-10">
+        <span className="bg-black/80 text-[8px] font-black tracking-widest px-2 py-1 rounded border" style={{ color: lime, borderColor: lime }}>
+          COMING SOON
+        </span>
+      </div>)}
       <div className="aspect-video w-full rounded-xl bg-white/10 mb-4 flex items-center justify-center border border-white/5 overflow-hidden">
         <FontAwesomeIcon icon={icon} className="text-4xl opacity-20 group-hover:opacity-100 transition-opacity" style={{ color: lime }} />
       </div>
@@ -39,6 +50,9 @@ function DocCard({ title, type, icon, lime }: DocCardProps) {
 export default function DocumentationPage() {
   const lime = '#A3FF12';
   const router = useRouter();
+  
+  // Array foto untuk di-map
+  const photos = [dok1, dok2, dok3, dok4];
 
   return (
     <main className={`${spaceGrotesk.className} relative min-h-screen text-white pb-32 overflow-hidden`}>
@@ -65,9 +79,15 @@ export default function DocumentationPage() {
         <div className="mt-8">
           <p className="text-[10px] font-black tracking-[0.3em] mb-4 opacity-50 uppercase">Dokumentasi Foto</p>
           <div className="grid grid-cols-2 gap-3">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="aspect-square rounded-xl border-2 bg-black/40 flex items-center justify-center" style={{ borderColor: lime }}>
-                <FontAwesomeIcon icon={faCamera} className="opacity-20" />
+            {photos.map((photo, i) => (
+              <div key={i} className="relative aspect-square rounded-xl border-2 bg-black/40 overflow-hidden" style={{ borderColor: lime }}>
+                <Image 
+                  src={photo} 
+                  alt={`Dokumentasi ${i + 1}`} 
+                  fill 
+                  className="object-cover transition-transform hover:scale-110 duration-300" 
+                  placeholder="blur"
+                />
               </div>
             ))}
           </div>

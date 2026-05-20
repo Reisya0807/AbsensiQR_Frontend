@@ -63,16 +63,95 @@ export default function LoginPage() {
 
   return (
     <main
-      className={`${spaceGrotesk.className} relative w-full h-screen flex items-center justify-center overflow-hidden`}
-      style={{ backgroundColor: '#6A8445' }}
+      className={`${spaceGrotesk.className} relative w-full h-screen flex items-center justify-center overflow-hidden bg-[#080808] md:bg-[#6A8445]`}
     >
+      {/* Alert */}
       {alert && <Alert message={alert.message} type={alert.type} />}
 
-      {/* Card 80vw x 80vh, padding tipis agar #6A8445 jadi "border" */}
+      {/* ======================================================== */}
+      {/* 📱 TAMPILAN MOBILE (Hanya muncul di layar < md)          */}
+      {/* ======================================================== */}
+      <div
+        className="absolute inset-0 z-0 pointer-events-none block md:hidden"
+        style={{
+          backgroundImage: "url('/img/bg-texture.jpeg')",
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          opacity: 0.3,
+        }}
+      />
+
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="relative flex rounded-3xl overflow-hidden"
+        className="relative z-10 w-[90%] max-w-md p-8 rounded-[40px] border border-[#A3FF12]/30 bg-black/60 backdrop-blur-xl block md:hidden"
+      >
+        {/* Back Button */}
+        <button
+          onClick={() => router.push('/')}
+          className="text-[#A3FF12] mb-4 text-xl active:scale-90 transition-transform block"
+        >
+          ←
+        </button>
+
+        {/* Logo */}
+        <div className="flex justify-center mb-6">
+          <Image src="/img/logo.png" alt="Logo" width={96} height={96} className="w-24 h-24 object-contain" />
+        </div>
+
+        {/* Form Mobile */}
+        <form onSubmit={handleLogin} className="space-y-5">
+          <div>
+            <label className="text-white text-sm opacity-60">Username</label>
+            <input
+              autoComplete="off"
+              name="username"
+              value={loginForm.username}
+              onChange={handleFormChange}
+              className="w-full mt-1 p-4 rounded-xl bg-black/40 border border-[#A3FF12]/30 text-white outline-none focus:border-[#A3FF12] transition-colors placeholder:text-white/20"
+              placeholder="Masukkan Username"
+            />
+          </div>
+
+          <div>
+            <label className="text-white text-sm opacity-60">Password</label>
+            <input
+              type="password"
+              name="password"
+              value={loginForm.password}
+              onChange={handleFormChange}
+              className="w-full mt-1 p-4 rounded-xl bg-black/40 border border-[#A3FF12]/30 text-white outline-none focus:border-[#A3FF12] transition-colors placeholder:text-white/20"
+              placeholder="••••••••"
+            />
+          </div>
+
+          <div className="flex justify-center pt-2">
+            <motion.button
+              type="submit"
+              whileTap={{ scale: 0.95 }}
+              disabled={loading}
+              className={`px-10 py-2.5 rounded-lg font-bold text-black text-xs uppercase tracking-widest transition-all ${
+                loading ? 'opacity-50 cursor-not-allowed' : 'opacity-100'
+              }`}
+              style={{
+                background: green,
+                boxShadow: loading ? 'none' : `0 0 16px ${green}`,
+              }}
+            >
+              {loading ? 'VERIFYING...' : 'LOGIN'}
+            </motion.button>
+          </div>
+        </form>
+      </motion.div>
+
+
+      {/* ======================================================== */}
+      {/* 💻 TAMPILAN DESKTOP (Sama seperti kode awal, tidak diubah) */}
+      {/* ======================================================== */}
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        className="relative hidden md:flex rounded-3xl overflow-hidden"
         style={{
           width: '80vw',
           height: '80vh',
@@ -89,14 +168,10 @@ export default function LoginPage() {
             backgroundPosition: 'center',
           }}
         >
-          {/* Overlay luar (area sekitar card di luar layar) — tidak dipakai */}
-
           {/* Kolom kiri — Form dengan dark overlay di atas texture */}
           <div className="relative w-full md:w-[50%] flex flex-col justify-center overflow-hidden">
-            {/* Dark overlay hanya di kolom form */}
             <div className="absolute inset-0 bg-black/75" />
 
-            {/* Form content */}
             <div className="relative z-10 p-8 md:p-12">
               <h2 className="text-white text-2xl text-center font-semibold mb-8">Welcome</h2>
 
@@ -145,14 +220,12 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Kolom kanan — Logo, texture saja tanpa overlay (desktop only) */}
+          {/* Kolom kanan — Logo (desktop only) */}
           <div className="hidden md:flex md:w-[50%] flex-col items-center justify-center px-8 py-10 text-center relative">
-            {/* Border neon hijau */}
             <div
               className="absolute inset-3 rounded-2xl pointer-events-none"
               style={{ border: '2px solid rgba(163,255,18,0.5)', boxShadow: '0 0 12px rgba(163,255,18,0.2)' }}
             />
-            {/* Overlay gelap sebagai border tambahan di luar border hijau */}
             <div
               className="absolute inset-0 rounded-r-[22px] pointer-events-none"
               style={{ border: '12px solid rgba(0,0,0,0.75)' }}
@@ -164,7 +237,7 @@ export default function LoginPage() {
               <Image src="/img/logo.png" alt="Logo" width={112} height={112} className="object-contain" />
             </div>
             <p className="text-[#A3FF12] font-black text-2xl uppercase tracking-widest leading-tight drop-shadow-lg">
-              VIDYA<br />SAMBANDHA
+              VIDYA SAMBANDHA
             </p>
             <p className="text-white/80 text-xs uppercase tracking-widest mt-3">
               SYUKURAN ANGKATAN 2025

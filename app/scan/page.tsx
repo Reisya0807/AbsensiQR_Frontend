@@ -104,7 +104,7 @@ export default function ScanPage() {
 
   return (
     <main
-      className={`${spaceGrotesk.className} relative min-h-screen text-white flex items-center justify-center pb-28 overflow-hidden bg-black`}
+      className={`${spaceGrotesk.className} relative min-h-screen text-white flex items-center justify-center pb-28 md:pb-0 overflow-hidden bg-black`}
     >
       <div className="absolute inset-0 bg-[url('/img/bg-texture.jpeg')] bg-cover bg-center opacity-30" />
 

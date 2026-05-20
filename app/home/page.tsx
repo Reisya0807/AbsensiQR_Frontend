@@ -1,6 +1,7 @@
 'use client';
 
 import BottomNav from '../components/BottomNav';
+import AboutPanel from '../components/AboutPanel';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -38,7 +39,7 @@ function MenuCard({ title, desc, icon, link, isSpecial = false }: MenuCardProps)
     <motion.div
       whileHover={{ scale: 1.02 }}
       onClick={() => router.push(link)}
-      className="flex items-center justify-between p-5 rounded-2xl border-2 cursor-pointer bg-black/40 backdrop-blur-sm"
+      className="flex items-center justify-between p-4 rounded-2xl border-2 cursor-pointer bg-black/40 backdrop-blur-sm transition-shadow hover:shadow-[0_0_25px_rgba(163,255,18,0.45)]"
       style={{
         borderColor: isSpecial ? '#FFFFFF' : lime,
         boxShadow: isSpecial
@@ -46,32 +47,45 @@ function MenuCard({ title, desc, icon, link, isSpecial = false }: MenuCardProps)
           : '0 0 15px rgba(163,255,18,0.2)',
       }}
     >
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-xl flex items-center justify-center border-2" style={{ borderColor: isSpecial ? '#FFFFFF' : lime }}>
-          <FontAwesomeIcon icon={icon} style={{ color: isSpecial ? '#FFFFFF' : lime }} className="text-xl" />
+      <div className="flex items-center gap-3">
+        <div
+          className="w-10 h-10 rounded-xl flex items-center justify-center border-2 shrink-0"
+          style={{ borderColor: isSpecial ? '#FFFFFF' : lime }}
+        >
+          <FontAwesomeIcon
+            icon={icon}
+            style={{ color: isSpecial ? '#FFFFFF' : lime }}
+            className="text-lg"
+          />
         </div>
         <div>
-          <p className="text-sm font-black tracking-wider uppercase" style={{ color: isSpecial ? '#FFFFFF' : lime }}>
+          <p
+            className="text-xs font-black tracking-wider uppercase"
+            style={{ color: isSpecial ? '#FFFFFF' : lime }}
+          >
             {title}
           </p>
-          <p className="text-[10px] font-bold text-white/60 uppercase tracking-tighter">{desc}</p>
+          <p className="text-[10px] font-bold text-white/50 uppercase tracking-tight">{desc}</p>
         </div>
       </div>
-      <span className="font-black text-xl" style={{ color: isSpecial ? '#FFFFFF' : lime }}>→</span>
+      <span className="font-black text-xl shrink-0 ml-2" style={{ color: isSpecial ? '#FFFFFF' : lime }}>
+        →
+      </span>
     </motion.div>
   );
 }
 
 export default function HomePage() {
   const lime = '#A3FF12';
-  const router = useRouter();
 
   const mounted = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const isAdmin = mounted && Token.getUser()?.role === Role.SEKRETARIS;
 
   return (
-    <main className={`${spaceGrotesk.className} relative min-h-screen bg-black text-white flex flex-col items-center pt-16 pb-28 overflow-hidden`}>
-      {/* BG */}
+    <main
+      className={`${spaceGrotesk.className} relative min-h-screen bg-black text-white`}
+    >
+      {/* Background */}
       <div
         className="absolute inset-0 z-0"
         style={{
@@ -82,71 +96,58 @@ export default function HomePage() {
         }}
       />
 
-      {/* HEADER */}
-      <div className="absolute top-6 left-6 z-10 flex items-center gap-3">
-        <Image src="/img/logo.png" alt="Logo" width={40} height={40} className="w-10 h-10 object-contain" />
-        {isAdmin && (
-          <div className="px-3 py-1 rounded-full border border-[#A3FF12] text-[#A3FF12] text-[10px] font-bold tracking-widest uppercase">
-            Admin Panel
-          </div>
-        )}
-      </div>
+      {/* Layout wrapper */}
+      <div className="relative z-10 flex min-h-screen max-w-5xl pt-16 md:pt-20 pb-28 md:pb-8 px-4 md:px-10 gap-6 mx-auto">
+  
+          {/* Kolom kiri — di desktop jadi 50% */}
+          <div className="w-full md:w-1/2 flex flex-col gap-4 min-w-0 py-4">
+          {/* Hero card */}
+          <motion.div
+            whileTap={{ scale: 0.98 }}
+            className="rounded-3xl border-2 overflow-hidden cursor-pointer bg-black/20 shrink-0"
+            style={{
+              borderColor: lime,
+              boxShadow: '0 0 25px rgba(163,255,18,0.3)',
+            }}
+          >
+            <Image
+              src="/img/vidya.png"
+              alt="Vidya Sambandha"
+              width={1200}
+              height={500}
+              className="w-full h-auto object-center object-cover"
+            />
+          </motion.div>
 
-      {/* CONTENT */}
-      <div className="z-10 w-full max-w-md px-6 flex flex-col gap-6 mt-10">
-        {/* TITLE CARD */}
-        <motion.div
-          whileTap={{ scale: 0.98 }}
-          onClick={() => router.push('/about')}
-          className="rounded-4xl border-2 overflow-hidden cursor-pointer bg-black/20"
-          style={{
-            borderColor: lime,
-            boxShadow: '0 0 25px rgba(163,255,18,0.3)',
-          }}
-        >
-          <Image src="/img/vidya.png" alt="Vidya Sambandha Event" width={500} height={300} className="w-full h-auto object-cover" />
-        </motion.div>
-
-        {/* MENU SECTION TITLE */}
-        <p className="text-[10px] font-black tracking-[0.2em] text-white/40 px-2 uppercase">Navigation Menu</p>
-
-        {/* ADMIN CONTROLS */}
-        {isAdmin && (
-          <section className="flex flex-col gap-4">
-            <p className="text-[10px] font-black tracking-[0.2em] text-[#A3FF12] px-2 uppercase">
-              Admin Controls
-            </p>
-            <div className="flex flex-col gap-4">
-              <MenuCard
-                title="GENERATE QR"
-                desc="Create unique QR for participants"
-                icon={faQrcode}
-                link="/generate-qr"
-                isSpecial={true}
-              />
-              <MenuCard
-                title="PARTICIPANT DATA"
-                desc="Manage & export attendee list"
-                icon={faUsersViewfinder}
-                link="/participants"
-                isSpecial={true}
-              />
-            </div>
-          </section>
-        )}
-
-        {/* GENERAL MENU */}
-        <section className="flex flex-col gap-4">
+          {/* Admin controls */}
           {isAdmin && (
-            <p className="text-[10px] font-black tracking-[0.2em] text-white/40 px-2 uppercase">
-              General Navigation
-            </p>
+            <div className="flex flex-col gap-3">
+              <p className="text-[10px] font-black tracking-[0.2em] text-[#A3FF12] uppercase px-1">
+                Admin Controls
+              </p>
+              <MenuCard title="GENERATE QR" desc="Create unique QR for participants" icon={faQrcode} link="/generate-qr" isSpecial />
+              <MenuCard title="FUND TRANSPARENCY" desc="Track event budget & expenses" icon={faCircleDollarToSlot} link="/fund" />
+              <MenuCard title="EVENT RUNDOWN" desc="Check event schedules & timeline" icon={faCalendarDays} link="/rundown" />
+              <MenuCard title="PARTICIPANT DATA" desc="Manage & export attendee list" icon={faUsersViewfinder} link="/participants" isSpecial />
+            </div>
           )}
-          <div className="flex flex-col gap-4">
-            <MenuCard title="FUND TRANSPARENCY" desc="Track event budget & expenses" icon={faCircleDollarToSlot} link="/fund" />
-            <MenuCard title="EVENT RUNDOWN" desc="Check event schedules & timeline" icon={faCalendarDays} link="/rundown" />
-          </div>
-        </section>
+
+          {/* Peserta menu */}
+          {!isAdmin && (
+            <div className="flex flex-col gap-3">
+              <p className="text-[10px] font-black tracking-[0.2em] text-white/40 uppercase px-1">
+                Navigation Menu
+              </p>
+              <MenuCard title="FUND TRANSPARENCY" desc="Track event budget & expenses" icon={faCircleDollarToSlot} link="/fund" />
+              <MenuCard title="EVENT RUNDOWN" desc="Check event schedules & timeline" icon={faCalendarDays} link="/rundown" />
+            </div>
+          )}
+        </div>
+
+        {/* Kolom kanan — About panel, desktop only */}
+        <div className="hidden md:flex md:w-1/2 shrink-0 py-4">
+          <AboutPanel /> 
+        </div>
       </div>
 
       <BottomNav />

@@ -73,6 +73,7 @@ function VerticalTreeNode({
               src={node.foto}
               alt={node.name}
               fill
+              sizes="25"
               className="object-cover"
             />
           </div>

@@ -18,7 +18,7 @@ class Token {
 
     static setToken(token: string) {
         if (typeof document === "undefined") return;
-        document.cookie = `${TOKEN_KEY}=${encodeURIComponent(token)}; path=/`;
+        document.cookie = `${TOKEN_KEY}=${encodeURIComponent(token)}; path=/; max-age=86400; SameSite=Lax; Secure`;
     }
     static setFirstLogin(isFirst: boolean) {
         console.log("Setting firstLogin cookie to", isFirst);

@@ -110,6 +110,7 @@ function ProfileContent() {
           alt={nama}
           width={112}
           height={112}
+          loading='eager'
           className="w-28 h-28 rounded-full object-cover border-2"
           style={{ borderColor: lime, boxShadow: '0 0 20px rgba(163,255,18,0.6)' }}
         />

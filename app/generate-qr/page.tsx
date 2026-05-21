@@ -21,48 +21,57 @@ export default function GenerateQR() {
   const [zoom, setZoom] = useState(0.85);
   const [alert, setAlert] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const inFlightRef = useRef(false);
-
-  // Backend enforces sekretaris-only. On 401/403 we redirect, otherwise back off
-  // to avoid hammering the endpoint at 1 RPS.
-  const fetchToken = useCallback(async () => {
-    if (inFlightRef.current) return;
-    inFlightRef.current = true;
-    try {
-      setAlert(null);
-      const res = await qrAPI.generate();
-      if (!res.data) throw new Error(res.message || 'Gagal generate QR');
-      setTokenData(res.data);
-      const expires = new Date(res.data.expiresAt).getTime();
-      const seconds = Math.max(1, Math.floor((expires - Date.now()) / 1000));
-      setTimeLeft(seconds);
-    } catch (err) {
-      const apiErr = err as APIError;
-      if (apiErr?.status === 401 || apiErr?.status === 403) {
-        router.replace('/home');
-        return;
-      }
-      setAlert({ message: getErrorMessage(err, 'Gagal generate QR'), type: 'error' });
-      setTimeLeft(RETRY_DELAY_SECONDS);
-    } finally {
-      inFlightRef.current = false;
-    }
-  }, [router]);
+  const routerRef = useRef(router);
 
   useEffect(() => {
-    if (alert) {
-      const timer = setTimeout(() => setAlert(null), 3000);
-      return () => clearTimeout(timer);
-    }
+    routerRef.current = router;
+  }, [router]);
+
+  // Stable fetch function using refs to avoid re-creating on every render
+  const fetchToken = useCallback(() => {
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
+
+    qrAPI
+      .generate()
+      .then((res) => {
+        if (!res.data) throw new Error(res.message || 'Gagal generate QR');
+        setTokenData(res.data);
+        setAlert(null);
+        const expires = new Date(res.data.expiresAt).getTime();
+        const seconds = Math.max(1, Math.floor((expires - Date.now()) / 1000));
+        setTimeLeft(seconds);
+      })
+      .catch((err) => {
+        const apiErr = err as APIError;
+        if (apiErr?.status === 401 || apiErr?.status === 403) {
+          routerRef.current.replace('/home');
+          return;
+        }
+        setAlert({ message: getErrorMessage(err, 'Gagal generate QR'), type: 'error' });
+        setTimeLeft(RETRY_DELAY_SECONDS);
+      })
+      .finally(() => {
+        inFlightRef.current = false;
+      });
+  }, []);
+
+  // Auto-dismiss alert
+  useEffect(() => {
+    if (!alert) return;
+    const timer = setTimeout(() => setAlert(null), 3000);
+    return () => clearTimeout(timer);
   }, [alert]);
 
+  // Initial fetch on mount only
   useEffect(() => {
     fetchToken();
   }, [fetchToken]);
-
+  // Countdown timer — calls fetchToken when it hits 1 → 0
   useEffect(() => {
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
-        if (prev === 1) fetchToken(); // fire on the 1 -> 0 edge
+        if (prev === 1) fetchToken();
         return Math.max(0, prev - 1);
       });
     }, 1000);
@@ -166,7 +175,7 @@ export default function GenerateQR() {
               </button>
             </div>
 
-            <div className="h-6 md:h-7 w-[1px] bg-white/10" />
+            <div className="h-6 md:h-7 w-px bg-white/10" />
 
             <div className="flex flex-col">
               <span className="text-[8px] md:text-[9px] font-black opacity-30 tracking-widest uppercase">Token</span>

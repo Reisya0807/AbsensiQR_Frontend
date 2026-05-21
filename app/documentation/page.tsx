@@ -79,6 +79,7 @@ export default function DocumentationPage() {
                     src={photo} 
                     alt={`Dokumentasi ${i + 1}`} 
                     fill 
+                    sizes='10'
                     className="object-cover transition-transform hover:scale-110 duration-300" 
                     placeholder="blur"
                   />

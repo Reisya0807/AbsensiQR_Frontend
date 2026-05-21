@@ -191,7 +191,7 @@ export default function PortfolioPage() {
 
       {/* ── MOBILE modals (detail & form) ── */}
       {isPanelOpen && (
-        <div className="md:hidden fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-xl px-6">
+        <div className="md:hidden fixed inset-0 z-60 flex items-center justify-center bg-black/90 backdrop-blur-xl px-6">
           <div className="w-full max-w-sm bg-[#0a0a0a] border border-[#A3FF12]/40 rounded-2xl p-6 relative max-h-[90vh] overflow-y-auto custom-scrollbar">
             <button onClick={closePanel} className="absolute top-4 right-4 text-white/40">
               <X size={22} />

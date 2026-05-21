@@ -51,7 +51,7 @@ const panitiaData: Record<string, Panitia> = {
   },
   "253040058": {
 		id: 7,
-    name: "Yusnia Nurhasanah",
+    name: "Yusria Nurhasanah",
     foto: "/img/panitia/253040058.png",
     jobdesk: "Menyusun RAB, mengelola dana, dan membuat laporan keuangan kepanitiaan.",
     role: "Bendahara 1",

@@ -120,6 +120,7 @@ export default function BottomNav() {
               src="/img/logo.png"
               alt="Logo"
               fill
+              sizes="40"
               className="object-contain"
               onError={(e) => {
                 // fallback jika gambar tidak ada

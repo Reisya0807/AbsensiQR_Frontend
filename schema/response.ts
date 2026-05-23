@@ -8,10 +8,15 @@ interface ResponseSchema<T = unknown> {
     errors?: unknown,
 }
 
+interface NewPasswordResponse {
+    username: string,
+    newPassword: string,
+}
+
 // token data response
 interface TokenData {
     token: string,
     expiresAt: ISODateString,
     qrCodeImage: string, // base64 data URL (data:image/png;base64,...)
 }
-export type { ResponseSchema, TokenData }
+export type { ResponseSchema, TokenData, NewPasswordResponse }

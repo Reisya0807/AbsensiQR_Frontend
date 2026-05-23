@@ -2,17 +2,29 @@ import { ISODateString } from "./customType"
 
 // data endpoint Event (CRUD)
 interface EventUpdate {
-    nama?: string,
+    name?: string,
+    description?: string,
+    startDate?: ISODateString,
+    endDate?: ISODateString,
+    location?: string,
 }
 
 interface EventCreate extends EventUpdate {
-    nama: string,
+    name: string,
+    description: string,
+    startDate: ISODateString,
+    endDate: ISODateString,
+    location: string,
 }
 
 // Read dan digabung response
 interface EventData {
     id: string,
-    nama: string,
+    name: string,
+    description: string,
+    startDate: ISODateString,
+    endDate: ISODateString,
+    location: string,
     createdAt: ISODateString,
     updatedAt: ISODateString,
     _count?: { certificates: number },

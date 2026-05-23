@@ -115,7 +115,7 @@ export default function CertificatePage() {
                 {/* Info */}
                 <div className="flex-1 min-w-0">
                   <p className="font-black uppercase tracking-tight text-sm" style={{ color: lime }}>
-                    {cert.event?.nama ?? 'EVENT'}
+                    {cert.event?.name ?? 'EVENT'}
                   </p>
                   <p className="text-[11px] text-white/50 tracking-tight">
                     {cert.certificateNumber}

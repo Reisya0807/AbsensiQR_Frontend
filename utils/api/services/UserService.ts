@@ -1,8 +1,9 @@
 import { User } from "@/schema/user";
 import APIService from "./APIService";
 import { ChangePassword, ResetPassword } from "@/schema/request";
+import { NewPasswordResponse } from "@/schema/response";
 
-class UserService extends APIService<User | undefined> {
+class UserService extends APIService<User | NewPasswordResponse | undefined> {
     getProfile() {
         return this.fetchAPI(`${this.endpoint}/profile`, "GET", true) //ada user
     }

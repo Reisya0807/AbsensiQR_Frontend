@@ -1,64 +1,57 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSearch, faPen, faChevronRight, faChevronLeft, faChevronDown, faUpload, faKey } from "@fortawesome/free-solid-svg-icons";
-import { pesertaAPI, attendanceAPI } from "@/utils/api/listAPI";
+import { pesertaAPI, attendanceAPI, userAPI } from "@/utils/api/listAPI";
 import { PesertaListItem } from "@/schema/user";
 import { getErrorMessage, APIError } from "@/utils/api/safeRequest";
 import Alert from "../components/Alert";
+import { NewPasswordResponse } from "@/schema/response";
 
-interface Row {
-  id: string; // userId
-  pesertaId: string | null;
-  name: string;
-  npm: string;
-  email: string | null;
-  hadir: boolean;
-  totalAbsensi: number;
-  img: string;
-}
-
-const ITEMS_PER_PAGE = 10;
-
-const toRow = (item: PesertaListItem): Row => {
-  const displayName = item.peserta?.nama ?? item.username;
-  return {
-    id: item.userId,
-    pesertaId: item.peserta?.id ?? null,
-    name: displayName,
-    npm: item.peserta?.npm ?? "-",
-    email: item.peserta?.email ?? null,
-    hadir: (item.totalAbsensi ?? 0) > 0,
-    totalAbsensi: item.totalAbsensi ?? 0,
-    img: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(displayName)}`,
-  };
-};
+const getDisplayName = (item: PesertaListItem) => item.peserta?.nama ?? item.username;
+const getAvatarUrl = (item: PesertaListItem) =>
+  `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(getDisplayName(item))}`;
 
 export default function ParticipantPage() {
   const lime = "#A3FF12";
   const router = useRouter();
 
-  const [rows, setRows] = useState<Row[]>([]);
+  const [items, setItems] = useState<PesertaListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [alert, setAlert] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedUser, setSelectedUser] = useState<Row | null>(null);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [selectedUser, setSelectedUser] = useState<PesertaListItem | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
-  const [showResetPopup, setShowResetPopup] = useState<Row | null>(null);
-  // Single effect: load data. Backend enforces role (returns 403 for non-sekretaris),
-  // so we redirect on auth failure instead of doing a separate role-check round trip.
+  const [showResetPopup, setShowResetPopup] = useState<PesertaListItem | null>(null);
+  const [resetResult, setResetResult] = useState<{ username: string; newPassword: string } | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  // Fetch data with API pagination
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    const fetchData = async () => {
+      setLoading(true);
       try {
-        const res = await pesertaAPI.list({ limit: "200" });
+        const res = await pesertaAPI.list({
+          page: String(currentPage),
+          limit: "10",
+          ...(searchTerm && { search: searchTerm })
+        });
+
         if (cancelled) return;
-        setRows((res.data?.data ?? []).map(toRow));
+
+        if (res.data?.data) {
+          setItems(res.data.data);
+          setTotalPages(res.data.pagination.totalPages);
+          setTotal(res.data.pagination.total);
+        }
       } catch (err) {
         if (cancelled) return;
         const apiErr = err as APIError;
@@ -70,11 +63,19 @@ export default function ParticipantPage() {
       } finally {
         if (!cancelled) setLoading(false);
       }
-    })();
-    return () => {
-      cancelled = true;
     };
-  }, [router]);
+
+    fetchData();
+    return () => { cancelled = true; };
+  }, [currentPage, searchTerm, router]);
+
+  // Search with debounce
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setCurrentPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   useEffect(() => {
     if (alert) {
@@ -83,21 +84,25 @@ export default function ParticipantPage() {
     }
   }, [alert]);
 
-  const filtered = useMemo(() => {
-    const q = searchTerm.toLowerCase();
-    return rows.filter((p) => p.name.toLowerCase().includes(q) || p.npm.includes(searchTerm));
-  }, [searchTerm, rows]);
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
-  const currentItems = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
-
-  const markPresent = async (row: Row) => {
-    if (row.npm === "-" || row.hadir) return;
-    setUpdatingId(row.id);
+  const resetPassword = async (item: PesertaListItem) => {
     try {
-      await attendanceAPI.manual({ npm: row.npm });
-      setRows((prev) => prev.map((p) => (p.id === row.id ? { ...p, hadir: true, totalAbsensi: p.totalAbsensi + 1 } : p)));
-      setSelectedUser((prev) => (prev && prev.id === row.id ? { ...prev, hadir: true } : prev));
+      const response = await userAPI.resetPassword({ userId: item.userId });
+      setResetResult(response.data as NewPasswordResponse);
+    } catch (err) {
+      setAlert({ message: getErrorMessage(err, "Gagal mereset password"), type: "error" });
+    } finally {
+      setShowResetPopup(null);
+    }
+  };
+
+  const markPresent = async (item: PesertaListItem) => {
+    const npm = item.peserta?.npm;
+    if (!npm || item.totalAbsensi > 0) return;
+    setUpdatingId(item.userId);
+    try {
+      await attendanceAPI.manual({ npm });
+      setItems((prev) => prev.map((p) => (p.userId === item.userId ? { ...p, totalAbsensi: p.totalAbsensi + 1 } : p)));
+      setSelectedUser((prev) => (prev && prev.userId === item.userId ? { ...prev, totalAbsensi: prev.totalAbsensi + 1 } : prev));
       setAlert({ message: "Absensi berhasil dicatat", type: "success" });
     } catch (err) {
       setAlert({ message: getErrorMessage(err, "Gagal mencatat absensi"), type: "error" });
@@ -128,7 +133,7 @@ export default function ParticipantPage() {
             <p className="text-[11px] font-bold tracking-[0.25em] uppercase text-white/40 mt-1">Manage & track attendee list</p>
           </div>
           <div className="px-4 py-2 rounded-full border text-[10px] font-black tracking-widest uppercase" style={{ borderColor: lime, color: lime, boxShadow: `0 0 12px ${lime}55` }}>
-            {filtered.length} Peserta
+            {total} Peserta
           </div>
         </div>
 
@@ -152,50 +157,59 @@ export default function ParticipantPage() {
         {loading ? (
           <div className="text-center py-20 text-white/40 text-xs uppercase tracking-widest italic">Loading...</div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5 min-h-125">
+          <div className="grid grid-cols-1 gap-4 min-h-125">
             <AnimatePresence mode="popLayout">
-              {currentItems.map((user) => (
-                <motion.div
-                  key={user.id}
-                  layout
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="flex items-center justify-between p-4 md:p-5 rounded-3xl border-2 bg-black/80 backdrop-blur-md transition-shadow hover:shadow-[0_0_18px_rgba(163,255,18,0.4)]"
-                  style={{ borderColor: lime, boxShadow: `0 0 10px ${lime}22` }}
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 md:w-16 md:h-16 rounded-xl md:rounded-2xl border-2 overflow-hidden bg-zinc-900 relative shrink-0" style={{ borderColor: lime }}>
-                      <img src={user.img} alt={`avatar of ${user.name}`} className="w-full h-full object-cover" />
-                    </div>
-                    <div>
-                      <h3 className="font-black text-[13px] md:text-sm tracking-tighter" style={{ color: lime }}>
-                        {user.name}
-                      </h3>
-                      <p className="text-[10px] md:text-[11px] font-bold opacity-60 tracking-widest">{user.npm}</p>
-                      <div className="flex items-center gap-1 mt-1">
-                        <div className={`w-2 h-2 rounded-full ${user.hadir ? "bg-[#A3FF12]" : "bg-red-500"}`} />
-                        <span className="text-[8px] md:text-[9px] font-bold uppercase opacity-60">{user.hadir ? "Hadir" : "Tidak"}</span>
+              {items.map((user) => {
+                const displayName = getDisplayName(user);
+                const npm = user.peserta?.npm ?? "-";
+                const hadir = user.totalAbsensi > 0;
+                return (
+                  <motion.div
+                    key={user.userId}
+                    layout
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex items-center justify-between h-fit p-4 md:p-5 rounded-3xl border-2 bg-black/80 backdrop-blur-md transition-shadow hover:shadow-[0_0_18px_rgba(163,255,18,0.4)]"
+                    style={{ borderColor: lime, boxShadow: `0 0 10px ${lime}22` }}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 md:w-16 md:h-16 rounded-xl md:rounded-2xl border-2 overflow-hidden bg-zinc-900 relative shrink-0" style={{ borderColor: lime }}>
+                        <img src={getAvatarUrl(user)} alt={`avatar of ${displayName}`} className="w-full h-full object-cover" />
+                      </div>
+                      <div>
+                        <h3 className="font-black text-[13px] md:text-sm tracking-tighter" style={{ color: lime }}>
+                          {displayName}
+                        </h3>
+                        <p className="text-[10px] md:text-[11px] font-bold opacity-60 tracking-widest">{npm}</p>
+                        <div className="flex items-center gap-1 mt-1">
+                          <div className={`w-2 h-2 rounded-full ${hadir ? "bg-[#A3FF12]" : "bg-red-500"}`} />
+                          <span className="text-[8px] md:text-[9px] font-bold uppercase opacity-60">{hadir ? "Hadir" : "Tidak"}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => router.push("/participants/serti")}
-                      className="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full border active:scale-75 transition-transform shrink-0"
-                      style={{ borderColor: lime }}
-                    >
-                      <FontAwesomeIcon icon={faUpload} style={{ color: lime }} />
-                    </button>
-                    <button onClick={() => setShowResetPopup(user)} className="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full border active:scale-75 transition-transform shrink-0" style={{ borderColor: lime }}>
-                      <FontAwesomeIcon icon={faKey} style={{ color: lime }} />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          if (user.peserta?.id) {
+                            router.push(`/participants/serti/${user.peserta.id}`);
+                          }
+                        }}
+                        className="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full border active:scale-75 transition-transform shrink-0"
+                        style={{ borderColor: lime }}
+                      >
+                        <FontAwesomeIcon icon={faUpload} style={{ color: lime }} />
+                      </button>
+                      <button onClick={() => setShowResetPopup(user)} className="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full border active:scale-75 transition-transform shrink-0" style={{ borderColor: lime }}>
+                        <FontAwesomeIcon icon={faKey} style={{ color: lime }} />
+                      </button>
 
-                    <button onClick={() => setSelectedUser(user)} className="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full border active:scale-75 transition-transform shrink-0" style={{ borderColor: lime }}>
-                      <FontAwesomeIcon icon={faPen} style={{ color: lime }} />
-                    </button>
-                  </div>
-                </motion.div>
-              ))}
+                      <button onClick={() => setSelectedUser(user)} className="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full border active:scale-75 transition-transform shrink-0" style={{ borderColor: lime }}>
+                        <FontAwesomeIcon icon={faPen} style={{ color: lime }} />
+                      </button>
+                    </div>
+                  </motion.div>
+                );
+              })}
             </AnimatePresence>
           </div>
         )}
@@ -241,10 +255,10 @@ export default function ParticipantPage() {
 
                 <div className="flex flex-col items-center mb-8">
                   <div className="w-32 h-32 rounded-full border-4 overflow-hidden bg-black mb-4 relative" style={{ borderColor: lime, boxShadow: `0 0 25px ${lime}` }}>
-                    <img src={selectedUser.img} alt={`avatar of ${selectedUser.name}`} className="w-full h-full object-cover" />
+                    <img src={getAvatarUrl(selectedUser)} alt={`avatar of ${getDisplayName(selectedUser)}`} className="w-full h-full object-cover" />
                   </div>
                   <h2 className="font-black text-xl tracking-widest text-center" style={{ color: lime }}>
-                    {selectedUser.name}
+                    {getDisplayName(selectedUser)}
                   </h2>
                 </div>
 
@@ -252,7 +266,7 @@ export default function ParticipantPage() {
                   <div className="px-6 py-4 rounded-2xl border-2 bg-black/60 flex justify-between items-center" style={{ borderColor: lime }}>
                     <span className="text-[10px] font-black opacity-60 uppercase tracking-widest">NPM</span>
                     <span className="font-bold text-sm" style={{ color: lime }}>
-                      {selectedUser.npm}
+                      {selectedUser.peserta?.npm ?? "-"}
                     </span>
                   </div>
 
@@ -265,17 +279,17 @@ export default function ParticipantPage() {
 
                   <div className="px-6 py-4 rounded-2xl border-2 bg-black/60 flex justify-between items-center" style={{ borderColor: lime }}>
                     <span className="text-[10px] font-black opacity-60 uppercase tracking-widest">Status</span>
-                    <span className={`text-[10px] font-black ${selectedUser.hadir ? "text-[#A3FF12]" : "text-red-500"}`}>{selectedUser.hadir ? "HADIR" : "BELUM ABSEN"}</span>
+                    <span className={`text-[10px] font-black ${selectedUser.totalAbsensi > 0 ? "text-[#A3FF12]" : "text-red-500"}`}>{selectedUser.totalAbsensi > 0 ? "HADIR" : "BELUM ABSEN"}</span>
                   </div>
                 </div>
 
                 <button
                   onClick={() => markPresent(selectedUser)}
-                  disabled={selectedUser.hadir || updatingId === selectedUser.id}
+                  disabled={selectedUser.totalAbsensi > 0 || updatingId === selectedUser.userId}
                   className="w-full py-5 mt-auto rounded-2xl font-black text-black tracking-[0.3em] text-xs transition-all active:scale-95 disabled:opacity-50 hover:shadow-[0_0_30px_rgba(163,255,18,0.7)]"
                   style={{ background: lime, boxShadow: `0 0 30px ${lime}66` }}
                 >
-                  {updatingId === selectedUser.id ? "PROCESSING..." : selectedUser.hadir ? "SUDAH HADIR" : "TANDAI HADIR (MANUAL)"}
+                  {updatingId === selectedUser.userId ? "PROCESSING..." : selectedUser.totalAbsensi > 0 ? "SUDAH HADIR" : "TANDAI HADIR (MANUAL)"}
                 </button>
               </div>
             </motion.div>
@@ -293,10 +307,10 @@ export default function ParticipantPage() {
 
                 <div className="flex flex-col items-center mb-10">
                   <div className="w-32 h-32 rounded-full border-4 overflow-hidden bg-black mb-4 relative" style={{ borderColor: lime, boxShadow: `0 0 20px ${lime}` }}>
-                    <img src={selectedUser.img} alt={`avatar of ${selectedUser.name}`} className="w-full h-full object-cover" />
+                    <img src={getAvatarUrl(selectedUser)} alt={`avatar of ${getDisplayName(selectedUser)}`} className="w-full h-full object-cover" />
                   </div>
                   <h2 className="font-black text-xl tracking-widest text-center" style={{ color: lime }}>
-                    {selectedUser.name}
+                    {getDisplayName(selectedUser)}
                   </h2>
                 </div>
 
@@ -304,7 +318,7 @@ export default function ParticipantPage() {
                   <div className="px-6 py-4 rounded-full border-2 bg-black/60 flex justify-between items-center" style={{ borderColor: lime }}>
                     <span className="text-[10px] font-black opacity-60 uppercase tracking-widest">NPM</span>
                     <span className="font-bold text-sm" style={{ color: lime }}>
-                      {selectedUser.npm}
+                      {selectedUser.peserta?.npm ?? "-"}
                     </span>
                   </div>
 
@@ -317,16 +331,16 @@ export default function ParticipantPage() {
 
                   <div className="px-6 py-4 rounded-full border-2 bg-black/60 flex justify-between items-center" style={{ borderColor: lime }}>
                     <span className="text-[10px] font-black opacity-60 uppercase tracking-widest">Status</span>
-                    <span className={`text-[10px] font-black ${selectedUser.hadir ? "text-[#A3FF12]" : "text-red-500"}`}>{selectedUser.hadir ? "HADIR" : "BELUM ABSEN"}</span>
+                    <span className={`text-[10px] font-black ${selectedUser.totalAbsensi > 0 ? "text-[#A3FF12]" : "text-red-500"}`}>{selectedUser.totalAbsensi > 0 ? "HADIR" : "BELUM ABSEN"}</span>
                   </div>
 
                   <button
                     onClick={() => markPresent(selectedUser)}
-                    disabled={selectedUser.hadir || updatingId === selectedUser.id}
+                    disabled={selectedUser.totalAbsensi > 0 || updatingId === selectedUser.userId}
                     className="w-full py-5 mt-8 rounded-full font-black text-black tracking-[0.3em] text-xs transition-all active:scale-95 disabled:opacity-50"
                     style={{ background: lime, boxShadow: `0 0 30px ${lime}66` }}
                   >
-                    {updatingId === selectedUser.id ? "PROCESSING..." : selectedUser.hadir ? "SUDAH HADIR" : "TANDAI HADIR (MANUAL)"}
+                    {updatingId === selectedUser.userId ? "PROCESSING..." : selectedUser.totalAbsensi > 0 ? "SUDAH HADIR" : "TANDAI HADIR (MANUAL)"}
                   </button>
                 </div>
               </div>
@@ -353,7 +367,7 @@ export default function ParticipantPage() {
               </h2>
 
               <p className="text-xs text-white/70 mb-6">
-                Yakin ingin reset password untuk <span style={{ color: lime }}>{showResetPopup.name}</span>?
+                Yakin ingin reset password untuk <span style={{ color: lime }}>{getDisplayName(showResetPopup)}</span>?
               </p>
 
               <div className="flex gap-3 justify-end">
@@ -361,10 +375,50 @@ export default function ParticipantPage() {
                   Batal
                 </button>
 
-                <button className="px-4 py-2 text-xs font-black rounded-full text-black" style={{ background: lime }}>
+                <button onClick={() => resetPassword(showResetPopup)} className="px-4 py-2 text-xs font-black rounded-full text-black" style={{ background: lime }}>
                   Ya, Reset
                 </button>
               </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {resetResult && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm" />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="fixed z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-sm bg-black border-2 rounded-2xl p-6"
+              style={{ borderColor: lime }}
+            >
+              <h2 className="text-sm font-black uppercase tracking-widest mb-5" style={{ color: lime }}>
+                Password Baru
+              </h2>
+              <p className="text-[10px] font-black opacity-60 uppercase tracking-widest mb-1">Username</p>
+              <p className="font-bold text-sm mb-4" style={{ color: lime }}>{resetResult.username}</p>
+              <p className="text-[10px] font-black opacity-60 uppercase tracking-widest mb-2">Password Baru</p>
+              <div className="px-4 py-3 rounded-xl border-2 mb-3 font-black tracking-widest text-center text-xl flex items-center justify-between gap-3" style={{ borderColor: lime, color: lime }}>
+                <span className="flex-1">{resetResult.newPassword}</span>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(resetResult.newPassword);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                  }}
+                  className="text-[10px] font-black px-2 py-1 rounded-lg border shrink-0"
+                  style={{ borderColor: lime, color: copied ? "black" : lime, background: copied ? lime : "transparent" }}
+                >
+                  {copied ? "COPIED!" : "COPY"}
+                </button>
+              </div>
+              <p className="text-[10px] text-white/40 text-center mb-5">Catat password ini sebelum menutup!</p>
+              <button onClick={() => setResetResult(null)} className="w-full py-3 text-xs font-black rounded-full text-black" style={{ background: lime }}>
+                Tutup
+              </button>
             </motion.div>
           </>
         )}
